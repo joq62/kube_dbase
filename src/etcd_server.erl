@@ -1,7 +1,7 @@
 %%% -------------------------------------------------------------------
 %%% @author  : Joq Erlang
 %%% @doc : represent a logical vm  
-%%% 
+%%%  
 %%% Supports the system with standard erlang vm functionality, load and start
 %%% of an erlang application (downloaded from git hub) and "dns" support 
 %%% 
@@ -11,7 +11,7 @@
 %%% 
 %%%     
 %%% -------------------------------------------------------------------
--module(etcd). 
+-module(etcd_server). 
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -182,7 +182,7 @@ check_started_extra_node()->
 %
 %% --------------------------------------------------------------------
 init([]) ->
-    
+    etcd_lib:init(),
     {ok, #state{}}.
 
 %% --------------------------------------------------------------------
