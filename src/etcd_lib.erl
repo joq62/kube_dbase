@@ -10,15 +10,17 @@
 %% Include files
 %% --------------------------------------------------------------------
 -define(ClusterConfigPath,"https://github.com/joq62/cluster_config.git").
--define(ClusterConfigDir,"cluster_config").
+-define(ClusterConfigDirName,"cluster_config").
 -define(ClusterConfigFile,"cluster_config/cluster.config").
+-define(ClusterConfigFileName,"cluster.config").
 
 -define(HostConfigPath,"https://github.com/joq62/host_config.git").
--define(HostConfigDir,"host_config").
+-define(HostConfigDirName,"host_config").
 -define(HostConfigFile,"host_config/hosts.config").
+-define(HostConfigFileName,"hosts.config").
 
 -define(PodSpecsPath,"https://github.com/joq62/pod_specs.git").
--define(PodSpecsDir,"pod_specs").
+-define(PodSpecsDirName,"pod_specs").
 %% --------------------------------------------------------------------
 
 
@@ -54,11 +56,16 @@ init()->
 %% Returns: non
 %% --------------------------------------------------------------------
 init_cluster_info()->
-    os:cmd("rm -rf "++?ClusterConfigDir),
+    {ok,ClusterIdAtom}=application:get_env(cluster_id),
+    ClusterId=atom_to_list(ClusterIdAtom),
+    ClusterConfigDir=filename:join(ClusterId,?ClusterConfigDirName),
+    os:cmd("rm -rf "++ClusterConfigDir),
     os:cmd("git clone "++?ClusterConfigPath),
-    {ok,ClusterInfo}=file:consult(?ClusterConfigFile),
+    os:cmd("mv "++?ClusterConfigDirName++" "++ClusterId),
+    ClusterConfigFile=filename:join([ClusterId,?ClusterConfigDirName,?ClusterConfigFileName]),
+    {ok,Info}=file:consult(ClusterConfigFile),
     ok=db_cluster_info:create_table(),
-    ok=init_cluster_info(ClusterInfo,[]),
+    ok=init_cluster_info(Info,[]),
     ok.
 init_cluster_info([],Result)->
     R=[R||R<-Result,
@@ -81,11 +88,18 @@ init_cluster_info([[{cluster_name,ClusterId},{controller_host,ControllerHost},{w
 %% Returns: non
 %% --------------------------------------------------------------------
 init_host_info()->
-    os:cmd("rm -rf "++?HostConfigDir),
+  {ok,ClusterIdAtom}=application:get_env(cluster_id),
+    ClusterId=atom_to_list(ClusterIdAtom),
+    HostConfigDir=filename:join(ClusterId,?HostConfigDirName),
+    os:cmd("rm -rf "++HostConfigDir),
     os:cmd("git clone "++?HostConfigPath),
-    {ok,HostInfo}=file:consult(?HostConfigFile),
+    os:cmd("mv "++?HostConfigDirName++" "++ClusterId),
+    HostConfigFile=filename:join([ClusterId,?HostConfigDirName,?HostConfigFileName]),
+    {ok,Info}=file:consult(HostConfigFile),
+   % io:format("~p~n",[{Debug,?MODULE,?LINE}]),
+    {ok,Info}=file:consult(HostConfigFile),
     ok=db_host_info:create_table(),
-    ok=init_host_info(HostInfo,[]),
+    ok=init_host_info(Info,[]),
     ok.
 init_host_info([],Result)->
     R=[R||R<-Result,
@@ -107,11 +121,14 @@ init_host_info([[{alias,Alias},{host_id,HostId},{ip,Ip},{ssh_port,SshPort},{uid,
 %% Returns: non
 %% --------------------------------------------------------------------
 init_pod_specs()->
-    os:cmd("rm -rf "++?PodSpecsDir),
+    {ok,ClusterIdAtom}=application:get_env(cluster_id),
+    ClusterId=atom_to_list(ClusterIdAtom),
     os:cmd("git clone "++?PodSpecsPath),
+    os:cmd("mv "++?PodSpecsDirName++" "++ClusterId),
+    PodSpecDir=filename:join([ClusterId,?PodSpecsDirName]),
     ok=db_pod_spec:create_table(),
-    {ok,FileNames}=file:list_dir(?PodSpecsDir),
-    PodSpecFiles=[filename:join([?PodSpecsDir,FileName])||FileName<-FileNames,
+    {ok,FileNames}=file:list_dir(PodSpecDir),
+    PodSpecFiles=[filename:join([PodSpecDir,FileName])||FileName<-FileNames,
 							 filename:extension(FileName)==".pod_spec"],
     ok=init_pod_specs(PodSpecFiles,[]),
       
