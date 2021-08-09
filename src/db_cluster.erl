@@ -75,6 +75,9 @@ add(Key,Node)->
 			mnesia:abort(?TABLE);
 		    [S1]->
 			NewRecord=case Key of
+				      host_nodes->
+					  Nodes=[Node|lists:delete(Node,S1#?RECORD.host_nodes)],
+					  S1#?RECORD{host_nodes=Nodes};
 				      controller_nodes->
 					  Nodes=[Node|lists:delete(Node,S1#?RECORD.controller_nodes)],
 					  S1#?RECORD{controller_nodes=Nodes};
@@ -102,6 +105,9 @@ remove(Key,Node)->
 			mnesia:abort(?TABLE);
 		    [S1]->
 			NewRecord=case Key of
+				      host_nodes->
+					  Nodes=lists:delete(Node,S1#?RECORD.host_nodes),
+					  S1#?RECORD{host_nodes=Nodes};
 				      controller_nodes->
 					  Nodes=lists:delete(Node,S1#?RECORD.controller_nodes),
 					  S1#?RECORD{controller_nodes=Nodes};
