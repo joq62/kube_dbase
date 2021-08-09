@@ -49,7 +49,25 @@ init()->
     ok=init_cluster_info(),
     ok=init_host_info(),
     ok=init_pod_specs(),
+    ok=init_cluster(),
     ok.
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+init_cluster()->
+    ok=db_cluster:create_table(),  
+    {ok,ClusterIdAtom}=application:get_env(cluster_id),
+    ClusterId=atom_to_list(ClusterIdAtom),
+    {ok,MonitorNodeAtom}=application:get_env(monitor_node),
+    Cookie=erlang:get_cookie(),
+    HostNodes=[],
+    ControllerNodes=[],
+    WorkerNodes=[], 
+    {atomic,ok}=db_cluster:create(ClusterId,MonitorNodeAtom,HostNodes,Cookie,ControllerNodes,WorkerNodes),
+ok.
+    
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 
