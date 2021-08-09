@@ -67,6 +67,8 @@ read(Key)->
 	   end,
     Return.
 
+add(Node)->
+    add(worker_nodes,Node).
 add(Key,Node)->
     F = fun() -> 
 		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
@@ -97,6 +99,8 @@ add(Key,Node)->
 	end,
     mnesia:transaction(F).
 
+remove(Node)->
+    remove(worker_nodes,Node).
 remove(Key,Node)->
     F = fun() -> 
 		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
