@@ -12,7 +12,7 @@
 			host_nodes,
 			cookie,
 			controller_nodes,
-			worker_Nodes
+			worker_nodes
 		       }).
 % Start Special 
 
@@ -33,7 +33,7 @@ create(ClusterId,MonitorNode,HostNodes,Cookie,ControllerNodes,WorkerNodes)->
 		    host_nodes=HostNodes,
 		    cookie=Cookie,
 		    controller_nodes=ControllerNodes,
-		    worker_Nodes=WorkerNodes
+		    worker_nodes=WorkerNodes
 		   },
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
@@ -68,7 +68,7 @@ read(Key)->
     Return.
 update(Key,Value)->
     F = fun() -> 
-		RecordList=[X||X<-mnesia:table(?TABLE)],
+		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
 		case RecordList of
 		    []->
 			mnesia:abort(?TABLE);
@@ -79,13 +79,13 @@ update(Key,Value)->
 				      monitor_node ->
 					  S1#?RECORD{monitor_node=Value};
 				      host_nodes->
-					  S1#?RECORD{cluster_id=Value};
+					  S1#?RECORD{host_nodes=Value};
 				      cookie->
-					  S1#?RECORD{cluster_id=Value};
+					  S1#?RECORD{cookie=Value};
 				      controller_nodes->
-					  S1#?RECORD{cluster_id=Value};
+					  S1#?RECORD{controller_nodes=Value};
 				      worker_nodes->
-					  S1#?RECORD{cluster_id=Value};
+					  S1#?RECORD{worker_nodes=Value};
 				      Err ->
 					  {error,['type not defined',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 				  end,
