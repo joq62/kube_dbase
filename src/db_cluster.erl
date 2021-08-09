@@ -66,7 +66,62 @@ read(Key)->
 		   end
 	   end,
     Return.
-update(Key,Value)->
+
+add(Key,Node)->
+    F = fun() -> 
+		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
+		case RecordList of
+		    []->
+			mnesia:abort(?TABLE);
+		    [S1]->
+			NewRecord=case Key of
+				      controller_nodes->
+					  Nodes=[Node|lists:delete(Node,S1#?RECORD.controller_nodes)],
+					  S1#?RECORD{controller_nodes=Nodes};
+				      worker_nodes->
+					  Nodes=[Node|lists:delete(Node,S1#?RECORD.worker_nodes)],
+					  S1#?RECORD{worker_nodes=Nodes};
+				      Err ->
+					  {error,['type not defined',Err,?FUNCTION_NAME,?MODULE,?LINE]}
+				  end,
+			case NewRecord of
+			    {error,_Err}->
+				mnesia:abort(?TABLE);
+			    NewRecord->
+				mnesia:write(NewRecord)
+			end
+		end
+	end,
+    mnesia:transaction(F).
+
+remove(Key,Node)->
+    F = fun() -> 
+		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
+		case RecordList of
+		    []->
+			mnesia:abort(?TABLE);
+		    [S1]->
+			NewRecord=case Key of
+				      controller_nodes->
+					  Nodes=lists:delete(Node,S1#?RECORD.controller_nodes),
+					  S1#?RECORD{controller_nodes=Nodes};
+				      worker_nodes->
+					  Nodes=lists:delete(Node,S1#?RECORD.worker_nodes),
+					  S1#?RECORD{worker_nodes=Nodes};
+				      Err ->
+					  {error,['type not defined',Err,?FUNCTION_NAME,?MODULE,?LINE]}
+				  end,
+			case NewRecord of
+			    {error,_Err}->
+				mnesia:abort(?TABLE);
+			    NewRecord->
+				mnesia:write(NewRecord)
+			end
+		end
+	end,
+    mnesia:transaction(F).
+    
+set(Key,Value)->
     F = fun() -> 
 		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
 		case RecordList of
