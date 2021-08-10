@@ -51,6 +51,31 @@ read(PodId)->
 		     X#?RECORD.pod_id==PodId])),
     [{XPodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}||{?RECORD,XPodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}<-Z].
 
+git_path(PodId)->
+    read(PodId,app_git_path).
+read(PodId,Key)->
+    Return=case read(PodId) of
+	       []->
+		   {error,[eexist,PodId,?FUNCTION_NAME,?MODULE,?LINE]};
+	       [{_PodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}] ->
+		   case  Key of
+		       pod_vsn->
+			   PodVsn;
+		       app_id ->
+			   AppId;
+		       app_vsn->
+			   AppVsn;
+		       app_git_path->
+			   AppGitPath;
+		       app_env->
+			   AppEnv;
+		       app_hosts->
+			   AppHosts;
+		       Err ->
+			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
+		   end
+	   end,
+    Return.
 delete(PodId) ->
     F = fun() -> 
 		ToBeRemoved=[X||X<-mnesia:read({?TABLE,PodId}),

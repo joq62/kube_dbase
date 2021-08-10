@@ -62,7 +62,7 @@ read(Key)->
 		       worker_nodes->
 			   WorkerNodes;
 		       Err ->
-			   {error,['type not defined',Err,?FUNCTION_NAME,?MODULE,?LINE]}
+			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 		   end
 	   end,
     Return.
