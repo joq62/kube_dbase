@@ -50,7 +50,12 @@ read(PodId)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
 		     X#?RECORD.pod_id==PodId])),
     [{XPodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}||{?RECORD,XPodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}<-Z].
-
+hosts(PodId)->
+    read(PodId,app_hosts).
+app_env(PodId)->
+    read(PodId,app_env).
+app_id(PodId)->
+    read(PodId,app_id).
 git_path(PodId)->
     read(PodId,app_git_path).
 read(PodId,Key)->
