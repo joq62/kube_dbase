@@ -31,9 +31,9 @@ start()->
     ok=setup(),
     io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-%    io:format("~p~n",[{"Start pass_0()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=pass_0(),
-%    io:format("~p~n",[{"Stop pass_0()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=pod(),
+    io:format("~p~n",[{"Stop pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %    io:format("~p~n",[{"Start pass_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
 %    ok=pass_1(),
@@ -71,8 +71,48 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-pass_0()->
+pod()->
+   %
+ %   db_pod:create(PodId,PodNode,PodDir,AppState,HostNode,Created)
+    {atomic,ok}=db_pod:create(id1,node1,dir1,[],host1,date1),
+    {atomic,ok}=db_pod:create(id2,node2,dir2,[],host1,date2),	
+    {atomic,ok}=db_pod:create(id3,node3,dir3,[],host2,date2),
+    
+    % Normal cases
+    dir1=db_pod:dir(node1),
+    host2=db_pod:host_node(node3),
+    []=db_pod:app_state(node2),
+    %
+    {atomic,ok}=db_pod:delete(node1),
+    %
+    {atomic,ok}=db_pod:add_app(node2,app1,loaded,spec1),
+    [{app1,loaded,spec1}]=db_pod:app_state(node2),
+    
+    {atomic,ok}=db_pod:add_app(node2,app2,started,spec2),
+    [{app2,started,spec2},{app1,loaded,spec1}]=db_pod:app_state(node2),
+    
+    {atomic,ok}=db_pod:remove_app(node2,app2),
+    [{app1,loaded,spec1}]=db_pod:app_state(node2),
+
+    io:format("~p~n",[db_pod:read_all()]),
     ok.
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+pass_2()->
+    ok.
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+pass_1()->
+    ok.
+
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -124,22 +164,6 @@ pass_3()->
 pass_4()->
     ok.
 
-
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-pass_2()->
-    ok.
-
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-pass_1()->
-    ok.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 

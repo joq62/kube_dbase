@@ -46,11 +46,23 @@ init()->
     mnesia:stop(),
     mnesia:delete_schema([node()]),
     mnesia:start(),
+    %Git info
     ok=init_cluster_info(),
     ok=init_host_info(),
     ok=init_pod_specs(),
+    %Status 
     ok=init_cluster(),
+    ok=init_pod(),
     ok.
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+init_pod()->
+    ok=db_pod:create_table(), 
+    ok.
+
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 
