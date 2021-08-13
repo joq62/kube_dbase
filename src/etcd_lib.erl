@@ -21,6 +21,9 @@
 
 -define(PodSpecsPath,"https://github.com/joq62/pod_specs.git").
 -define(PodSpecsDirName,"pod_specs").
+
+-define(DeploymentSpecsPath,"https://github.com/joq62/deployment.git").
+-define(DeploymentSpecsDirName,"deployment").
 %% --------------------------------------------------------------------
 
 
@@ -50,10 +53,57 @@ init()->
     ok=init_cluster_info(),
     ok=init_host_info(),
     ok=init_pod_specs(),
+    ok=init_deployment_specs(),
     %Status 
     ok=init_cluster(),
     ok=init_pod(),
+    ok=init_deployment(),
     ok.
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+init_deployment()->
+    ok=db_deployment:create_table(), 
+    ok.
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+init_deployment_specs()->
+    {ok,ClusterIdAtom}=application:get_env(cluster_id),
+    ClusterId=atom_to_list(ClusterIdAtom),
+    os:cmd("git clone "++?DeploymentSpecsPath),
+    DeploymentSpecDir=filename:join([ClusterId,?DeploymentSpecsDirName]),
+    os:cmd("mv "++?DeploymentSpecsDirName++" "++DeploymentSpecDir),
+
+    {atomic,ok}=db_deployment_spec:create_table(),
+    {ok,FileNames}=file:list_dir(DeploymentSpecDir),
+    DeploymentSpecFiles=[filename:join([DeploymentSpecDir,FileName])||FileName<-FileNames,
+							 filename:extension(FileName)==".deployment"],
+    ok=init_deployment_specs(DeploymentSpecFiles,[]),
+      
+    ok.
+
+init_deployment_specs([],Result)->
+    R=[R||R<-Result,
+	  R/={atomic,ok}],
+    case R of
+	[]->
+	    ok;
+	R->
+	    {error,[R]}
+    end;
+init_deployment_specs([DeploymentSpecFile|T],Acc)->
+    {ok,Info}=file:consult(DeploymentSpecFile),
+    [{pod_id,PodId},{host,HostId},{cluster,ClusterId}]=Info,
+    R={atomic,ok}=db_deployment_spec:create(PodId,HostId,ClusterId),
+    
+    init_deployment_specs(T,[R|Acc]).
+    
+
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 

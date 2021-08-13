@@ -31,13 +31,21 @@ start()->
     ok=setup(),
     io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
+    io:format("~p~n",[{"Start pod_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=pod_spec(),
+    io:format("~p~n",[{"Stop pod_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
     io:format("~p~n",[{"Start pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=pod(),
     io:format("~p~n",[{"Stop pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-%    io:format("~p~n",[{"Start pass_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=pass_1(),
-%    io:format("~p~n",[{"Stop pass_1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=deployment_spec(),
+    io:format("~p~n",[{"Stop deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+    io:format("~p~n",[{"Start deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=deployment(),
+    io:format("~p~n",[{"Stop deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %    io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
 %    ok=pass_2(),
@@ -66,6 +74,81 @@ start()->
     ok.
 
 
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+deployment_spec()->
+    
+    [{"mymath.pod_spec","c0","lgh"}]=db_deployment_spec:read_all(),
+    
+    ok.
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+deployment()->
+    
+   % create(Reference,App,DeploymentSpec,PodNode,HostId,ClusterId,Created)
+    {atomic,ok}=db_deployment:create(ref1,app1,depspec1,podnode1,host1,cluster1,date1),
+    {atomic,ok}=db_deployment:create(ref2,app2,depspec2,podnode2,host2,cluster2,date2),	
+    {atomic,ok}=db_deployment:create(ref3,app1,depspec3,podnode1,host1,cluster1,date3),
+    
+    % Normal cases
+    app1=db_deployment:app(ref1),
+    depspec1=db_deployment:deployment(ref1),
+    podnode1=db_deployment:pod(ref1),
+    host1=db_deployment:host(ref1),
+    cluster1=db_deployment:cluster(ref1),
+    date3=db_deployment:created(ref3),
+
+    app1=db_deployment:app(ref3),
+   
+    
+    %
+    {atomic,_}=db_deployment:delete(ref1),
+    {error,_}=db_deployment:app(ref1),
+    %
+    app1=db_deployment:app(ref3),
+  
+    io:format("~p~n",[db_pod:read_all()]),
+    ok.
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+pod_spec()->
+    [{"mymath_lgh","1.0.0","mymath","1.0.0",
+      "https://github.com/joq62/mymath.git",[],
+      [{"c2_lgh","c2"}]},
+     {"kubelet","1.0.0","kubelet","1.0.0",
+      "https://github.com/joq62/kubelet.git",[],[]},
+     {"balcony_lgh","1.0.0","balcony","1.0.0",
+      "https://github.com/joq62/balcony.git",
+      "port 8080",
+      [{"c0_lgh","c0"}]},
+     {"controller","1.0.0","controller","1.0.0",
+      "https://github.com/joq62/controller.git",[],
+      []},
+     {"iaas","1.0.0","iaas","1.0.0",
+      "https://github.com/joq62/iaas.git",[],[]},
+     {"balcony","1.0.0","balcony","1.0.0",
+      "https://github.com/joq62/balcony.git",[],
+      [{"c1_varmdo","c1"}]},
+     {"etcd","1.0.0","etcd","1.0.0",
+      "https://github.com/joq62/etcd.git",[],[]},
+     {"orginal","1.0.0","orginal","1.0.0", 
+      "https://github.com/joq62/orginal.git",[],[]},
+     {"mymath","1.0.0","mymath","1.0.0",
+      "https://github.com/joq62/mymath.git",[],
+      [{"asus_varmdo","joq62-X550CA"}]}]=db_pod_spec:read_all(),
+   
+    ok.
+
+   %
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
@@ -103,7 +186,8 @@ pod()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pass_2()->
-    ok.
+    
+     ok.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
