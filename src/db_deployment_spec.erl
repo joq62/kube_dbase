@@ -7,6 +7,7 @@
 -define(TABLE, deployment_info).
 -define(RECORD,deployment_info).
 -record(deployment_info,{
+			 deployment_id,
 			 pod_id,
 			 host_id,
 			 cluster_id
@@ -26,8 +27,9 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(PodId,HostId,ClusterId)->
+create(DeploymentId,PodId,HostId,ClusterId)->
     Record=#?RECORD{
+		    deployment_id=DeploymentId,
 		    pod_id=PodId,
 		    host_id=HostId,
 		    cluster_id=ClusterId
@@ -37,23 +39,23 @@ create(PodId,HostId,ClusterId)->
 
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{PodId,HostId,ClusterId}||{?RECORD,PodId,HostId,ClusterId}<-Z].
+    [{DeploymentId,PodId,HostId,ClusterId}||{?RECORD,DeploymentId,PodId,HostId,ClusterId}<-Z].
 
 pods(WantedClusterId)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{PodId,HostId}||{?RECORD,PodId,HostId,ClusterId}<-Z,
+    [{DeploymentId,PodId,HostId}||{?RECORD,DeploymentId,PodId,HostId,ClusterId}<-Z,
 		   WantedClusterId==ClusterId].
 
-hosts(WantedPodId,WantedClusterId)->
+hosts(WantedDeploymentId,WantedClusterId)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [HostId||{?RECORD,PodId,HostId,ClusterId}<-Z,
-	     WantedPodId==PodId,
+    [HostId||{?RECORD,DeploymentId,_PodId,HostId,ClusterId}<-Z,
+	     WantedDeploymentId==DeploymentId,
 	     WantedClusterId==ClusterId].
 
-read(PodId)->
+read(WantedDeploymentId)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.pod_id==PodId])),
-    [{HostId,ClusterId}||{?RECORD,_,HostId,ClusterId}<-Z].
+		     X#?RECORD.deployment_id==WantedDeploymentId])),
+    [{HostId,ClusterId}||{?RECORD,_,_PodId,HostId,ClusterId}<-Z].
 
 do(Q) ->
   F = fun() -> qlc:e(Q) end,

@@ -81,7 +81,8 @@ start()->
 %% --------------------------------------------------------------------
 deployment_spec()->
     
-    [{"mymath.pod_spec","c0","lgh"}]=db_deployment_spec:read_all(),
+    [{"mymath_lgh_c2","mymath","c2","lgh"},
+     {"mymath_lgh_c0","mymath","c0","lgh"}]=db_deployment_spec:read_all(),
     
     ok.
 %% --------------------------------------------------------------------
@@ -121,30 +122,24 @@ deployment()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pod_spec()->
-    [{"mymath_lgh","1.0.0","mymath","1.0.0",
-      "https://github.com/joq62/mymath.git",[],
-      [{"c2_lgh","c2"}]},
-     {"kubelet","1.0.0","kubelet","1.0.0",
+    [{"kubelet","1.0.0","kubelet","1.0.0",
       "https://github.com/joq62/kubelet.git",[],[]},
      {"balcony_lgh","1.0.0","balcony","1.0.0",
-      "https://github.com/joq62/balcony.git",
-      "port 8080",
+      "https://github.com/joq62/balcony.git","port 8080",
       [{"c0_lgh","c0"}]},
      {"controller","1.0.0","controller","1.0.0",
-      "https://github.com/joq62/controller.git",[],
+      "https://github.com/joq62/controller.git",[],[]},
+     {"iaas","1.0.0","iaas","1.0.0","https://github.com/joq62/iaas.git",[],
       []},
-     {"iaas","1.0.0","iaas","1.0.0",
-      "https://github.com/joq62/iaas.git",[],[]},
      {"balcony","1.0.0","balcony","1.0.0",
       "https://github.com/joq62/balcony.git",[],
       [{"c1_varmdo","c1"}]},
-     {"etcd","1.0.0","etcd","1.0.0",
-      "https://github.com/joq62/etcd.git",[],[]},
-     {"orginal","1.0.0","orginal","1.0.0", 
+     {"etcd","1.0.0","etcd","1.0.0","https://github.com/joq62/etcd.git",[],
+      []},
+     {"orginal","1.0.0","orginal","1.0.0",
       "https://github.com/joq62/orginal.git",[],[]},
      {"mymath","1.0.0","mymath","1.0.0",
-      "https://github.com/joq62/mymath.git",[],
-      [{"asus_varmdo","joq62-X550CA"}]}]=db_pod_spec:read_all(),
+      "https://github.com/joq62/mymath.git",[],[]}]=db_pod_spec:read_all(),
    
     ok.
 
