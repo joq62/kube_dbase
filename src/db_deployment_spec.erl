@@ -39,6 +39,11 @@ read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
     [{PodId,HostId,ClusterId}||{?RECORD,PodId,HostId,ClusterId}<-Z].
 
+pods(WantedClusterId)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
+    [{PodId,HostId}||{?RECORD,PodId,HostId,ClusterId}<-Z,
+		   WantedClusterId==ClusterId].
+
 hosts(WantedPodId,WantedClusterId)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
     [HostId||{?RECORD,PodId,HostId,ClusterId}<-Z,
