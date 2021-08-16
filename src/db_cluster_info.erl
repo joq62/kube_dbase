@@ -43,6 +43,40 @@ read_all() ->
     [{ClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode}||
 	{?RECORD,ClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode}<-Z].
 
+controller(ClusterId)->
+    read(ClusterId,controller_host).
+num_workers(ClusterId)->
+    read(ClusterId,num_woorker_hosts).
+workers(ClusterId)->
+    read(ClusterId, worker_hosts).
+cookie(ClusterId)->
+    read(ClusterId,cookie).
+controller_node(ClusterId)->
+    read(ClusterId,controller_node).
+    
+read(ClusterId,Key)->
+    Return=case read(ClusterId) of
+	       []->
+		   {error,[eexist,ClusterId,?FUNCTION_NAME,?MODULE,?LINE]};
+	       [{ClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode}] ->
+		   case  Key of
+		       cluster_id->
+			   ClusterId;
+		       controller_host->
+			   ControllerHost;
+		       num_worker_hosts->
+			   NumWorkers;
+		       worker_hosts->
+			   WorkerHosts;
+		       cookie->
+			   Cookie;
+		       controller_node->
+			   ControllerNode;
+		       Err ->
+			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
+		   end
+	   end,
+    Return.
 read(ClusterId)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
 		     X#?RECORD.cluster_id==ClusterId])),
