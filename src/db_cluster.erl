@@ -43,6 +43,16 @@ read_all() ->
     [{ClusterId,MonitorNode,HostNodes,Cookie,ControllerNodes,WorkerNodes}||
 	{?RECORD,ClusterId,MonitorNode,HostNodes,Cookie,ControllerNodes,WorkerNodes}<-Z].
 
+member(WantedClusterId)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
+    case [ClusterId||{?RECORD,ClusterId,_,_,_,_,_}<-Z,
+		     WantedClusterId==ClusterId] of
+	[]->
+	    false;
+	_->
+	    true
+    end.
+		 
 read(Key)->
     Return=case read_all() of
 	       []->

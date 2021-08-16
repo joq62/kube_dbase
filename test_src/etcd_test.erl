@@ -31,6 +31,10 @@ start()->
     ok=setup(),
     io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
+    io:format("~p~n",[{"Start cluster()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=cluster(),
+    io:format("~p~n",[{"Stop cluster()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
     io:format("~p~n",[{"Start pod_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=pod_spec(),
     io:format("~p~n",[{"Stop pod_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
@@ -79,6 +83,24 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
+cluster()->
+    %ClusterId,MonitorNode,HostNodes,Cookie,ControllerNodes,WorkerNodes
+    {atomic,ok}=db_cluster:create(cluster1,mon1,hosts1,cookie1,controller1,workers1),
+    {atomic,ok}=db_cluster:create(cluster2,mon2,hosts2,cookie2,controller2,workers2),
+
+    true=db_cluster:member(cluster1),
+    false=db_cluster:member(cluster3),
+
+    ok.
+
+
+    
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
 deployment_spec()->
     
     [{"mymath_lgh_c2","mymath","c2","lgh"},
@@ -98,6 +120,7 @@ deployment()->
     {atomic,ok}=db_deployment:create(ref2,app2,depspec2,podnode2,host2,cluster2,date2),	
     {atomic,ok}=db_deployment:create(ref3,app1,depspec3,podnode1,host1,cluster1,date3),
     
+
     % Normal cases
     app1=db_deployment:app(ref1),
     depspec1=db_deployment:deployment(ref1),
@@ -185,13 +208,6 @@ pass_2()->
     
      ok.
 
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-pass_1()->
-    ok.
 
 
 %% --------------------------------------------------------------------
