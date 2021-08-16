@@ -24,6 +24,8 @@
 
 -define(DeploymentSpecsPath,"https://github.com/joq62/deployment.git").
 -define(DeploymentSpecsDirName,"deployment").
+
+-define(TempDir,"temp_dir").
 %% --------------------------------------------------------------------
 
 
@@ -73,18 +75,18 @@ init_deployment()->
 %% Returns: non
 %% --------------------------------------------------------------------
 init_deployment_specs()->
-    {ok,ClusterIdAtom}=application:get_env(cluster_id),
-    ClusterId=atom_to_list(ClusterIdAtom),
+%    {ok,ClusterIdAtom}=application:get_env(cluster_id),
+%    ClusterId=atom_to_list(ClusterIdAtom),
     os:cmd("git clone "++?DeploymentSpecsPath),
-    DeploymentSpecDir=filename:join([ClusterId,?DeploymentSpecsDirName]),
-    os:cmd("mv "++?DeploymentSpecsDirName++" "++DeploymentSpecDir),
+%    DeploymentSpecDir=filename:join([ClusterId,?DeploymentSpecsDirName]),
+%    os:cmd("mv "++?DeploymentSpecsDirName++" "++DeploymentSpecDir),
 
     {atomic,ok}=db_deployment_spec:create_table(),
-    {ok,FileNames}=file:list_dir(DeploymentSpecDir),
-    DeploymentSpecFiles=[filename:join([DeploymentSpecDir,FileName])||FileName<-FileNames,
-							 filename:extension(FileName)==".deployment"],
+    {ok,FileNames}=file:list_dir(?DeploymentSpecsDirName),
+    DeploymentSpecFiles=[filename:join([?DeploymentSpecsDirName,FileName])||FileName<-FileNames,
+								      filename:extension(FileName)==".deployment"],
     ok=init_deployment_specs(DeploymentSpecFiles,[]),
-      
+    os:cmd("rm -rf "++?DeploymentSpecsDirName),
     ok.
 
 init_deployment_specs([],Result)->
@@ -99,8 +101,7 @@ init_deployment_specs([],Result)->
 init_deployment_specs([DeploymentSpecFile|T],Acc)->
     {ok,Info}=file:consult(DeploymentSpecFile),
     [{deployment_id,DeploymentId},{pod_id,PodId},{host,HostId},{cluster,ClusterId}]=Info,
-    R={atomic,ok}=db_deployment_spec:create(DeploymentId,PodId,HostId,ClusterId),
-    
+    R={atomic,ok}=db_deployment_spec:create(DeploymentId,PodId,HostId,ClusterId),  
     init_deployment_specs(T,[R|Acc]).
     
 
@@ -136,16 +137,19 @@ ok.
 %% Returns: non
 %% --------------------------------------------------------------------
 init_cluster_info()->
-    {ok,ClusterIdAtom}=application:get_env(cluster_id),
-    ClusterId=atom_to_list(ClusterIdAtom),
-    ClusterConfigDir=filename:join(ClusterId,?ClusterConfigDirName),
-    os:cmd("rm -rf "++ClusterConfigDir),
+ %   {ok,ClusterIdAtom}=application:get_env(cluster_id),
+ %   ClusterId=atom_to_list(ClusterIdAtom),
+ %   ClusterConfigDir=filename:join(ClusterId,?ClusterConfigDirName),
+%    os:cmd("rm -rf "++ClusterConfigDir),
+    os:cmd("rm -rf "++?ClusterConfigDirName),
     os:cmd("git clone "++?ClusterConfigPath),
-    os:cmd("mv "++?ClusterConfigDirName++" "++ClusterConfigDir),
-    ClusterConfigFile=filename:join([ClusterId,?ClusterConfigDirName,?ClusterConfigFileName]),
+%    os:cmd("mv "++?ClusterConfigDirName++" "++ClusterConfigDir),
+%    ClusterConfigFile=filename:join([ClusterId,?ClusterConfigDirName,?ClusterConfigFileName]),
+    ClusterConfigFile=filename:join([?ClusterConfigDirName,?ClusterConfigFileName]),
     {ok,Info}=file:consult(ClusterConfigFile),
     ok=db_cluster_info:create_table(),
     ok=init_cluster_info(Info,[]),
+    os:cmd("rm -rf "++?ClusterConfigDirName),
     ok.
 init_cluster_info([],Result)->
     R=[R||R<-Result,
@@ -168,18 +172,20 @@ init_cluster_info([[{cluster_name,ClusterId},{controller_host,ControllerHost},{w
 %% Returns: non
 %% --------------------------------------------------------------------
 init_host_info()->
-  {ok,ClusterIdAtom}=application:get_env(cluster_id),
-    ClusterId=atom_to_list(ClusterIdAtom),
-    HostConfigDir=filename:join(ClusterId,?HostConfigDirName),
-    os:cmd("rm -rf "++HostConfigDir),
+ % {ok,ClusterIdAtom}=application:get_env(cluster_id),
+ %   ClusterId=atom_to_list(ClusterIdAtom),
+ %   HostConfigDir=filename:join(ClusterId,?HostConfigDirName),
+%    os:cmd("rm -rf "++HostConfigDir),
+    os:cmd("rm -rf "++?HostConfigDirName),
     os:cmd("git clone "++?HostConfigPath),
-    os:cmd("mv "++?HostConfigDirName++" "++HostConfigDir),
-    HostConfigFile=filename:join([ClusterId,?HostConfigDirName,?HostConfigFileName]),
+  %  os:cmd("mv "++?HostConfigDirName++" "++HostConfigDir),
+  %  HostConfigFile=filename:join([ClusterId,?HostConfigDirName,?HostConfigFileName]),
+    HostConfigFile=filename:join([?HostConfigDirName,?HostConfigFileName]),
     {ok,Info}=file:consult(HostConfigFile),
    % io:format("~p~n",[{Debug,?MODULE,?LINE}]),
-    {ok,Info}=file:consult(HostConfigFile),
     ok=db_host_info:create_table(),
     ok=init_host_info(Info,[]),
+    os:cmd("rm -rf "++?HostConfigDirName),
     ok.
 init_host_info([],Result)->
     R=[R||R<-Result,
@@ -201,18 +207,17 @@ init_host_info([[{alias,Alias},{host_id,HostId},{ip,Ip},{ssh_port,SshPort},{uid,
 %% Returns: non
 %% --------------------------------------------------------------------
 init_pod_specs()->
-    {ok,ClusterIdAtom}=application:get_env(cluster_id),
-    ClusterId=atom_to_list(ClusterIdAtom),
+ %   {ok,ClusterIdAtom}=application:get_env(cluster_id),
+ %   ClusterId=atom_to_list(ClusterIdAtom),
     os:cmd("git clone "++?PodSpecsPath),
-    PodSpecDir=filename:join([ClusterId,?PodSpecsDirName]),
-    os:cmd("mv "++?PodSpecsDirName++" "++PodSpecDir),
+  %  PodSpecDir=filename:join([ClusterId,?PodSpecsDirName]),
 
     ok=db_pod_spec:create_table(),
-    {ok,FileNames}=file:list_dir(PodSpecDir),
-    PodSpecFiles=[filename:join([PodSpecDir,FileName])||FileName<-FileNames,
-							 filename:extension(FileName)==".pod_spec"],
+    {ok,FileNames}=file:list_dir(?PodSpecsDirName),
+    PodSpecFiles=[filename:join([?PodSpecsDirName,FileName])||FileName<-FileNames,
+							      filename:extension(FileName)==".pod_spec"],
     ok=init_pod_specs(PodSpecFiles,[]),
-      
+    os:cmd("rm -rf "++?PodSpecsDirName),
     ok.
 
 init_pod_specs([],Result)->

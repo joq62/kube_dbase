@@ -82,6 +82,7 @@ start()->
 deployment_spec()->
     
     [{"mymath_lgh_c2","mymath","c2","lgh"},
+     {"mymath_c0","mymath","c0","staging"},
      {"mymath_lgh_c0","mymath","c0","lgh"}]=db_deployment_spec:read_all(),
     
     ok.
