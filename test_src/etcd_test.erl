@@ -86,7 +86,12 @@ start()->
 cluster()->
     %ClusterId,MonitorNode,HostNodes,Cookie,ControllerNodes,WorkerNodes
     {atomic,ok}=db_cluster:create(cluster1,mon1,hosts1,cookie1,controller1,workers1),
+    io:format("cluster1 ~p~n",[db_cluster:read_all()]),
     {atomic,ok}=db_cluster:create(cluster2,mon2,hosts2,cookie2,controller2,workers2),
+    io:format("cluster2 ~p~n",[db_cluster:read_all()]),
+    {atomic,ok}=db_cluster:create(cluster1,mon44,hosts444,cookie1,controller1,workers1),
+    io:format("cluster1 again ~p~n",[db_cluster:read_all()]),
+
 
     true=db_cluster:member(cluster1),
     false=db_cluster:member(cluster3),
