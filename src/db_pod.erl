@@ -53,6 +53,12 @@ read_all() ->
 	{?RECORD,Reference,PodNode,PodDir,PodSpecs,HostNode,Created}<-Z].
 
 %% 
+read(WantedReference)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
+		     X#?RECORD.reference==WantedReference])),
+    [{Reference,PodNode,PodDir,PodSpecs,HostNode,Created}||
+	{?RECORD,Reference,PodNode,PodDir,PodSpecs,HostNode,Created}<-Z].
+    
 node(Reference)->
     read(Reference,pod_node).
 dir(Reference)->
