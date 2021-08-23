@@ -7,7 +7,6 @@
 -define(TABLE,pod_status).
 -define(RECORD,pod_status).
 -record(pod_status,{
-		    reference,
 		    pod_node,
 		    pod_dir,
 		    pod_specs, 
@@ -22,9 +21,8 @@ create_table()->
 				{type,bag}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(Reference,PodNode,PodDir,PodSpecs,HostNode,Created)->
+create(PodNode,PodDir,PodSpecs,HostNode,Created)->
     Record=#?RECORD{
-		    reference=Reference,
 		    pod_node=PodNode,
 		    pod_dir=PodDir,
 		    pod_specs=PodSpecs, 
@@ -34,12 +32,12 @@ create(Reference,PodNode,PodDir,PodSpecs,HostNode,Created)->
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
-delete(Reference)->
+delete(PodNode)->
     F=fun()->
 		   case do(qlc:q([X || X <- mnesia:table(?TABLE),
-				       X#?RECORD.reference==Reference])) of
+				       X#?RECORD.pod_node==PodNode])) of
 		       []->
-			   mnesia:abort({error,[ticket,"eexist",[Reference]]});
+			   mnesia:abort({error,[ticket,"eexist",[PodNode]]});
 		       [R]->  
 			   mnesia:delete_object(R)
 		   end
@@ -49,39 +47,34 @@ delete(Reference)->
     
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{Reference,PodNode,PodDir,PodSpecs,HostNode,Created}||
-	{?RECORD,Reference,PodNode,PodDir,PodSpecs,HostNode,Created}<-Z].
+    [{PodNode,PodDir,PodSpecs,HostNode,Created}||
+	{?RECORD,PodNode,PodDir,PodSpecs,HostNode,Created}<-Z].
 
 %% 
-read(WantedReference)->
+read(WantedPodNode)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
-		     X#?RECORD.reference==WantedReference])),
-    [{Reference,PodNode,PodDir,PodSpecs,HostNode,Created}||
-	{?RECORD,Reference,PodNode,PodDir,PodSpecs,HostNode,Created}<-Z].
+		     X#?RECORD.pod_node==WantedPodNode])),
+    [{PodNode,PodDir,PodSpecs,HostNode,Created}||
+	{?RECORD,PodNode,PodDir,PodSpecs,HostNode,Created}<-Z].
     
-node(Reference)->
-    read(Reference,pod_node).
-dir(Reference)->
-    read(Reference,pod_dir).
-pod_specs(Reference)->
-    read(Reference,pod_specs).
-host_node(Reference)->
-    read(Reference,host_node).
-created(Reference)->
-    read(Reference,created).
 
-read(Reference,Key)->
+dir(PodNode)->
+    read(PodNode,pod_dir).
+pod_specs(PodNode)->
+    read(PodNode,pod_specs).
+host_node(PodNode)->
+    read(PodNode,host_node).
+created(PodNode)->
+    read(PodNode,created).
+
+read(PodNode,Key)->
     Result=case do(qlc:q([X || X <- mnesia:table(?TABLE),
-			       X#?RECORD.reference==Reference])) of
+			       X#?RECORD.pod_node==PodNode])) of
 	       []->
-		   {error,[ticket,"eexist",[Reference]]};
+		   {error,[ticket,"eexist",[PodNode]]};
 	       [R]->
 		   
 		   case Key of
-		       reference->
-			   R#?RECORD.reference;
-		       pod_node->
-			   R#?RECORD.pod_node;
 		       pod_dir->
 			   R#?RECORD.pod_dir;
 		       pod_specs->
@@ -96,13 +89,13 @@ read(Reference,Key)->
 	   end,
     Result.
 
-add_spec(Reference,PodSpec)->
+add_spec(PodNode,PodSpec)->
     F = fun() -> 
 		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
-					  X#?RECORD.reference==Reference])),
+					  X#?RECORD.pod_node==PodNode])),
 		case RecordList of
 		    []->
-			mnesia:abort({error,[ticket,"eexist",[Reference,RecordList]]});
+			mnesia:abort({error,[ticket,"eexist",[PodNode,RecordList]]});
 		    [S1]->
 			UpdatedPodSpecs=[PodSpec|lists:delete(PodSpec,S1#?RECORD.pod_specs)],
 			NewRecord=S1#?RECORD{pod_specs=UpdatedPodSpecs},
@@ -112,13 +105,13 @@ add_spec(Reference,PodSpec)->
 	end,
     mnesia:transaction(F).
 
-remove_spec(Reference,PodSpec)->
+remove_spec(PodNode,PodSpec)->
     F = fun() -> 
 		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
-					   X#?RECORD.reference==Reference])),
+					   X#?RECORD.pod_node==PodNode])),
 		case RecordList of
 		    []->
-			mnesia:abort({error,[ticket,"eexist",[Reference,RecordList]]});
+			mnesia:abort({error,[ticket,"eexist",[PodNode,RecordList]]});
 		    [S1]->
 			UpdatedPodSpecs=lists:delete(PodSpec,S1#?RECORD.pod_specs),
 			NewRecord=S1#?RECORD{pod_specs=UpdatedPodSpecs},

@@ -151,25 +151,30 @@ deployment()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pod_spec()->
-    [{"kubelet","1.0.0","kubelet","1.0.0",
-      "https://github.com/joq62/kubelet.git",[],[]},
-     {"balcony_lgh","1.0.0","balcony","1.0.0",
-      "https://github.com/joq62/balcony.git","port 8080",
-      [{"c0_lgh","c0"}]},
-     {"controller","1.0.0","controller","1.0.0",
-      "https://github.com/joq62/controller.git",[],[]},
-     {"iaas","1.0.0","iaas","1.0.0","https://github.com/joq62/iaas.git",[],
-      []},
-     {"balcony","1.0.0","balcony","1.0.0",
-      "https://github.com/joq62/balcony.git",[],
-      [{"c1_varmdo","c1"}]},
-     {"etcd","1.0.0","etcd","1.0.0","https://github.com/joq62/etcd.git",[],
-      []},
-     {"orginal","1.0.0","orginal","1.0.0",
-      "https://github.com/joq62/orginal.git",[],[]},
-     {"mymath","1.0.0","mymath","1.0.0",
-      "https://github.com/joq62/mymath.git",[],[]}]=db_pod_spec:read_all(),
-   
+  [{"kubelet","1.0.0","kubelet","1.0.0",
+    "https://github.com/joq62/kubelet.git",[],[]},
+   {"balcony_lgh","1.0.0","balcony","1.0.0",
+    "https://github.com/joq62/balcony.git",
+    "port 8080",
+    [{"c0_lgh","c0"}]},
+   {"controller","1.0.0","controller","1.0.0",
+    "https://github.com/joq62/controller.git",[],
+    []},
+   {"iaas","1.0.0","iaas","1.0.0",
+    "https://github.com/joq62/iaas.git",[],[]},
+   {"balcony","1.0.0","balcony","1.0.0",
+    "https://github.com/joq62/balcony.git",[],
+    [{"c1_varmdo","c1"}]},
+   {"etcd","1.0.0","etcd","1.0.0",
+    "https://github.com/joq62/etcd.git",[],[]},
+   {"orginal","1.0.0","orginal","1.0.0",
+    "https://github.com/joq62/orginal.git",[],[]},
+   {"mymath","1.0.0","mymath","1.0.0",
+    "https://github.com/joq62/mymath.git",[],[]},
+   {"support","1.0.0","support","1.0.0",
+    "https://github.com/joq62/support.git",[],
+    []}]=db_pod_spec:read_all(),
+    
     ok.
 
    %
@@ -181,25 +186,25 @@ pod_spec()->
 pod()->
    %
  %   db_pod:create(PodId,PodNode,PodDir,AppState,HostNode,Created)
-    {atomic,ok}=db_pod:create(id1,node1,dir1,[],host1,date1),
-    {atomic,ok}=db_pod:create(id2,node2,dir2,[],host1,date2),	
-    {atomic,ok}=db_pod:create(id3,node3,dir3,[],host2,date2),
+    {atomic,ok}=db_pod:create(node1,dir1,[],host1,date1),
+    {atomic,ok}=db_pod:create(node2,dir2,[],host1,date2),	
+    {atomic,ok}=db_pod:create(node3,dir3,[],host2,date2),
     
     % Normal cases
     dir1=db_pod:dir(node1),
     host2=db_pod:host_node(node3),
-    []=db_pod:app_state(node2),
+    []=db_pod:pod_specs(node2),
     %
     {atomic,ok}=db_pod:delete(node1),
     %
-    {atomic,ok}=db_pod:add_app(node2,app1,loaded,spec1),
-    [{app1,loaded,spec1}]=db_pod:app_state(node2),
+    {atomic,ok}=db_pod:add_spec(node2,spec1),
+    [spec1]=db_pod:pod_specs(node2),
     
-    {atomic,ok}=db_pod:add_app(node2,app2,started,spec2),
-    [{app2,started,spec2},{app1,loaded,spec1}]=db_pod:app_state(node2),
+    {atomic,ok}=db_pod:add_spec(node2,spec2),
+    [spec2,spec1]=db_pod:pod_specs(node2),
     
-    {atomic,ok}=db_pod:remove_app(node2,app2),
-    [{app1,loaded,spec1}]=db_pod:app_state(node2),
+    {atomic,ok}=db_pod:remove_spec(node2,spec2),
+    [spec1]=db_pod:pod_specs(node2),
 
     io:format("~p~n",[db_pod:read_all()]),
     ok.
