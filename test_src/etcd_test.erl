@@ -229,6 +229,9 @@ pod_spec()->
     not_defined=db_pod_spec:dir("mymath"),
     {atomic,ok}=db_pod_spec:set_dir("mymath","my_dir"),
     "my_dir"=db_pod_spec:dir("mymath"),
+
+    true=db_pod_spec:member("mymath"),
+    false=db_pod_spec:member("glurk"),
     
     ok.
 

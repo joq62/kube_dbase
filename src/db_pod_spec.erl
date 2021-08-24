@@ -55,6 +55,18 @@ read(Name)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
 		     X#?RECORD.name==Name])),
     [{XName,Vsn,Containers,WantedHosts,PodStatus,ContainerStatus,Pod,Dir}||{?RECORD,XName,Vsn,Containers,WantedHosts,PodStatus,ContainerStatus,Pod,Dir}<-Z].
+
+member(Name)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
+		     X#?RECORD.name==Name])),
+    Member=case Z of
+	       []->
+		   false;
+	       _->
+		   true
+	   end,
+    Member.
+
 vsn(Name)->
     read(Name,vsn).
 containers(Name)->
