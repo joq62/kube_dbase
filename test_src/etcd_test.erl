@@ -210,10 +210,15 @@ pod_spec()->
     [{pod2,dir2,not_running,not_started},
      {pod1,dir1,running,running}]=db_pod_spec:deployment("mymath"), 
     
+    {pod1,dir1,running,running}=db_pod_spec:deployment("mymath",pod1),
+    []=db_pod_spec:deployment("mymath",glurk),
+    
     {atomic,ok}=db_pod_spec:update_deployment("mymath",pod2,dir2,glurk,running),
     {atomic,ok}=db_pod_spec:delete_deployment("mymath",pod1),
     {atomic,ok}=db_pod_spec:update_deployment("mymath",pod1,dir1,running,running),
     [{pod2,dir2,glurk,running}]=db_pod_spec:deployment("mymath"), 
+
+    
     
    
 

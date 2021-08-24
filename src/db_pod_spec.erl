@@ -71,6 +71,16 @@ container_status(Name)->
     read(Name,container_status).
 deployment(Name)->
     read(Name,deployment).
+deployment(Name,Pod)->
+    Result=case lists:keyfind(Pod,1,read(Name,deployment)) of
+	       false->
+		   [];
+	       Deployment ->
+		   Deployment
+	   end,
+    Result.
+    
+	
 read(Name,Key)->
     Return=case read(Name) of
 	       []->
