@@ -43,13 +43,13 @@ start()->
     ok=pod(),
     io:format("~p~n",[{"Stop pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=deployment_spec(),
-    io:format("~p~n",[{"Stop deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   io:format("~p~n",[{"Start deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   ok=deployment_spec(),
+ %   io:format("~p~n",[{"Stop deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=deployment(),
-    io:format("~p~n",[{"Stop deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   io:format("~p~n",[{"Start deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   ok=deployment(),
+ %   io:format("~p~n",[{"Stop deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %    io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
 %    ok=pass_2(),
@@ -85,17 +85,24 @@ start()->
 %% --------------------------------------------------------------------
 cluster()->
     %ClusterId,MonitorNode,HostNodes,Cookie,ControllerNodes,WorkerNodes
-    {atomic,ok}=db_cluster:create(cluster1,mon1,hosts1,cookie1,controller1,workers1),
-    io:format("cluster1 ~p~n",[db_cluster:read_all()]),
-    {atomic,ok}=db_cluster:create(cluster2,mon2,hosts2,cookie2,controller2,workers2),
-    io:format("cluster2 ~p~n",[db_cluster:read_all()]),
-    {atomic,ok}=db_cluster:create(cluster1,mon44,hosts444,cookie1,controller1,workers1),
-    io:format("cluster1 again ~p~n",[db_cluster:read_all()]),
+    [{"lgh",
+      [{"c0_lgh","c0"},
+       {"c2_lgh","c2"},
+       {"asus_lgh","joq62-X550CA"}],
+      "lgh_cookie",not_started}]=db_cluster_spec:read_all(),
 
+    [{"c0_lgh","c0"},
+     {"c2_lgh","c2"},
+     {"asus_lgh","joq62-X550CA"}]=db_cluster_spec:hosts("lgh"),
 
-    true=db_cluster:member(cluster1),
-    false=db_cluster:member(cluster3),
+    "lgh_cookie"=db_cluster_spec:cookie("lgh"),
 
+    not_started=db_cluster_spec:status("lgh"),
+    {atomic,ok}=db_cluster_spec:set_status("lgh",running),
+    running=db_cluster_spec:status("lgh"),
+    
+
+    
     ok.
 
 
@@ -151,29 +158,77 @@ deployment()->
 %% Returns: non
 %% --------------------------------------------------------------------
 pod_spec()->
-  [{"kubelet","1.0.0","kubelet","1.0.0",
-    "https://github.com/joq62/kubelet.git",[],[]},
-   {"balcony_lgh","1.0.0","balcony","1.0.0",
-    "https://github.com/joq62/balcony.git",
-    "port 8080",
-    [{"c0_lgh","c0"}]},
-   {"controller","1.0.0","controller","1.0.0",
-    "https://github.com/joq62/controller.git",[],
-    []},
-   {"iaas","1.0.0","iaas","1.0.0",
-    "https://github.com/joq62/iaas.git",[],[]},
-   {"balcony","1.0.0","balcony","1.0.0",
-    "https://github.com/joq62/balcony.git",[],
-    [{"c1_varmdo","c1"}]},
-   {"etcd","1.0.0","etcd","1.0.0",
-    "https://github.com/joq62/etcd.git",[],[]},
-   {"orginal","1.0.0","orginal","1.0.0",
-    "https://github.com/joq62/orginal.git",[],[]},
-   {"mymath","1.0.0","mymath","1.0.0",
-    "https://github.com/joq62/mymath.git",[],[]},
-   {"support","1.0.0","support","1.0.0",
-    "https://github.com/joq62/support.git",[],
-    []}]=db_pod_spec:read_all(),
+    [{"kubelet","1.0.0",
+      [{"kubelet","1.0.0",
+	"https://github.com/joq62/kubelet.git",[]}],
+      [],not_scheduled,
+      [{"kubelet","1.0.0",unloaded}],
+      not_started,not_defined},
+     {"balcony_lgh","1.0.0",
+      [{"balcony","1.0.0",
+	"https://github.com/joq62/balcony.git",[]}],
+      [{"c0_lgh","c0"}],
+      not_scheduled,
+      [{"balcony","1.0.0",unloaded}],
+                                not_started,not_defined},
+     {"balcony_varmdo","1.0.0",
+      [{"balcony","1.0.0",
+	"https://github.com/joq62/balcony.git",[]}],
+                                [{"c1_varmdo","c1"}],
+      not_scheduled,
+      [{"balcony","1.0.0",unloaded}],
+      not_started,not_defined},
+     {"controller","1.0.0",
+      [{"controller","1.0.0",
+	"https://github.com/joq62/controller.git",
+                                  []}],
+      [],not_scheduled,
+      [{"controller","1.0.0",unloaded}],
+      not_started,not_defined},
+     {"iaas","1.0.0",
+      [{"iaas","1.0.0",
+	"https://github.com/joq62/iaas.git",[]}],
+      [],not_scheduled,
+      [{"iaas","1.0.0",unloaded}],
+      not_started,not_defined},
+     {"etcd","1.0.0",
+      [{"etcd","1.0.0", 
+	"https://github.com/joq62/etcd.git",[]}],
+      [],not_scheduled,
+      [{"etcd","1.0.0",unloaded}],
+      not_started,not_defined},
+     {"mymath","1.0.0",
+      [{"mymath","1.0.0",
+	"https://github.com/joq62/mymath.git",[]}],
+      [],not_scheduled,
+      [{"mymath","1.0.0",unloaded}],
+      not_started,not_defined}]=db_pod_spec:read_all(),
+    
+    [{"mymath","1.0.0",
+      [{"mymath","1.0.0",
+	"https://github.com/joq62/mymath.git",[]}],
+      [],not_scheduled,
+      [{"mymath","1.0.0",unloaded}],
+      not_started,not_defined}]=db_pod_spec:read("mymath"),
+    
+    "1.0.0"=db_pod_spec:vsn("mymath"),
+    [{"mymath","1.0.0",
+      "https://github.com/joq62/mymath.git",[]}]=db_pod_spec:containers("mymath"),
+    [{"c0_lgh","c0"}]=db_pod_spec:wanted_hosts("balcony_lgh"),
+    not_scheduled=db_pod_spec:pod_status("mymath"),
+    [{"mymath","1.0.0",unloaded}]=db_pod_spec:container_status("mymath"),
+    {atomic,ok}=db_pod_spec:update_pod_status("mymath",running),
+    running=db_pod_spec:pod_status("mymath"),
+    {atomic,ok}=db_pod_spec:update_container_status("mymath",{"mymath","1.0.0",started}),  
+    [{"mymath","1.0.0",started}]=db_pod_spec:container_status("mymath"), 
+
+    not_started=db_pod_spec:pod("mymath"),
+    {atomic,ok}=db_pod_spec:set_pod("mymath",'glurk@xc'),
+    'glurk@xc'=db_pod_spec:pod("mymath"),
+  
+    not_defined=db_pod_spec:dir("mymath"),
+    {atomic,ok}=db_pod_spec:set_dir("mymath","my_dir"),
+    "my_dir"=db_pod_spec:dir("mymath"),
     
     ok.
 
@@ -185,28 +240,7 @@ pod_spec()->
 %% --------------------------------------------------------------------
 pod()->
    %
- %   db_pod:create(PodId,PodNode,PodDir,AppState,HostNode,Created)
-    {atomic,ok}=db_pod:create(node1,dir1,[],host1,date1),
-    {atomic,ok}=db_pod:create(node2,dir2,[],host1,date2),	
-    {atomic,ok}=db_pod:create(node3,dir3,[],host2,date2),
-    
-    % Normal cases
-    dir1=db_pod:dir(node1),
-    host2=db_pod:host_node(node3),
-    []=db_pod:pod_specs(node2),
-    %
-    {atomic,ok}=db_pod:delete(node1),
-    %
-    {atomic,ok}=db_pod:add_spec(node2,spec1),
-    [spec1]=db_pod:pod_specs(node2),
-    
-    {atomic,ok}=db_pod:add_spec(node2,spec2),
-    [spec2,spec1]=db_pod:pod_specs(node2),
-    
-    {atomic,ok}=db_pod:remove_spec(node2,spec2),
-    [spec1]=db_pod:pod_specs(node2),
 
-    io:format("~p~n",[db_pod:read_all()]),
     ok.
 
 %% --------------------------------------------------------------------

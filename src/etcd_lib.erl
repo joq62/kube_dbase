@@ -52,7 +52,7 @@ init()->
     mnesia:delete_schema([node()]),
     mnesia:start(),
     %Git info
-    ok=init_cluster_info(),
+    ok=init_cluster_specs(),
     ok=init_host_info(),
     ok=init_pod_specs(),
     ok=init_deployment_specs(),
@@ -128,7 +128,7 @@ init_cluster()->
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-init_cluster_info()->
+init_cluster_specs()->
  %   {ok,ClusterIdAtom}=application:get_env(cluster_id),
  %   ClusterId=atom_to_list(ClusterIdAtom),
  %   ClusterConfigDir=filename:join(ClusterId,?ClusterConfigDirName),
@@ -139,11 +139,11 @@ init_cluster_info()->
 %    ClusterConfigFile=filename:join([ClusterId,?ClusterConfigDirName,?ClusterConfigFileName]),
     ClusterConfigFile=filename:join([?ClusterConfigDirName,?ClusterConfigFileName]),
     {ok,Info}=file:consult(ClusterConfigFile),
-    ok=db_cluster_info:create_table(),
-    ok=init_cluster_info(Info,[]),
+    ok=db_cluster_spec:create_table(),
+    ok=init_cluster_specs(Info,[]),
     os:cmd("rm -rf "++?ClusterConfigDirName),
     ok.
-init_cluster_info([],Result)->
+init_cluster_specs([],Result)->
     R=[R||R<-Result,
 	  R/={atomic,ok}],
     case R of
@@ -153,10 +153,9 @@ init_cluster_info([],Result)->
 	    {error,[R]}
     end;
     
-init_cluster_info([[{cluster_name,ClusterId},{controller_host,ControllerHost},{worker_hosts,NumWorkers,WorkerHosts},{cookie,Cookie}]|T],Acc)->
-    ControllerNode=[],
-    R=db_cluster_info:create(ClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode),
-    init_cluster_info(T,[R|Acc]).
+init_cluster_specs([[{cluster_name,ClusterName},{hosts,Hosts},{cookie,Cookie}]|T],Acc)->
+    R=db_cluster_spec:create(ClusterName,Hosts,Cookie),
+    init_cluster_specs(T,[R|Acc]).
     
 %% --------------------------------------------------------------------
 %% Function:start
@@ -223,8 +222,8 @@ init_pod_specs([],Result)->
     end;
 init_pod_specs([PodSpecFile|T],Acc)->
     {ok,Info}=file:consult(PodSpecFile),
-    [{pod_id,PodId},{pod_vsn,PodVsn},{application,{AppId,AppVsn,AppGitPath}},{app_env,AppEnv},{app_hosts,AppHosts}]=Info,
-    R=db_pod_spec:create(PodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts),
+    [{name,Name},{vsn,Vsn},{containers,Containers},{wanted_hosts,WantedHosts}]=Info,
+    R=db_pod_spec:create(Name,Vsn,Containers,WantedHosts),
     init_pod_specs(T,[R|Acc]).
     
 %% --------------------------------------------------------------------

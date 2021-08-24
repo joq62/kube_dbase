@@ -4,24 +4,24 @@
 
 -include_lib("stdlib/include/qlc.hrl").
 
--define(TABLE,pod_info). 
--define(RECORD,pod_info).
--record(pod_info,{ 
-		   pod_id,
-		   pod_vsn,
-		   app_id,
-		   app_vsn,
-		   app_git_path,
-		   app_env,
-		   app_hosts
+-define(TABLE,pod_spec). 
+-define(RECORD,pod_spec).
+-record(pod_spec,{
+		  name,
+		  vsn,
+		  containers,
+		  wanted_hosts,
+		  pod_status,
+		  container_status,
+		  pod,
+		  dir
 		  }).
 
 % Start Special 
 
 % End Special 
 create_table()->
-    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)},
-				{type,bag}]),
+    mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
 create_table(NodeList)->
@@ -29,67 +29,139 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(PodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts)->
+create(Name,Vsn,Containers,WantedHosts)->
+    ContainerStatus=[{AppId,AppVsn,unloaded}||{AppId,AppVsn,_GitPath,_AppEnv}<-Containers],
+    PodStatus=not_scheduled,
+    Pod=not_started,
+    Dir=not_defined,
     Record=#?RECORD{
-		    pod_id=PodId,
-		    pod_vsn=PodVsn,
-		    app_id=AppId,
-		    app_vsn=AppVsn,
-		    app_git_path=AppGitPath,
-		    app_env=AppEnv,
-		    app_hosts=AppHosts
+		    name=Name,
+		    vsn=Vsn,
+		    containers=Containers,
+		    wanted_hosts=WantedHosts,
+		    pod_status=PodStatus,
+		    container_status=ContainerStatus,
+		    pod=Pod,
+		    dir=Dir
 		   },
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{PodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}||{?RECORD,PodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}<-Z].
+    [{Name,Vsn,Containers,WantedHosts,PodStatus,ContainerStatus,Pod,Dir}||{?RECORD,Name,Vsn,Containers,WantedHosts,PodStatus,ContainerStatus,Pod,Dir}<-Z].
 
-read(PodId)->
+read(Name)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.pod_id==PodId])),
-    [{XPodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}||{?RECORD,XPodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}<-Z].
-hosts(PodId)->
-    read(PodId,app_hosts).
-app_env(PodId)->
-    read(PodId,app_env).
-app_id(PodId)->
-    read(PodId,app_id).
-git_path(PodId)->
-    read(PodId,app_git_path).
-read(PodId,Key)->
-    Return=case read(PodId) of
+		     X#?RECORD.name==Name])),
+    [{XName,Vsn,Containers,WantedHosts,PodStatus,ContainerStatus,Pod,Dir}||{?RECORD,XName,Vsn,Containers,WantedHosts,PodStatus,ContainerStatus,Pod,Dir}<-Z].
+vsn(Name)->
+    read(Name,vsn).
+containers(Name)->
+    read(Name,containers).
+wanted_hosts(Name)->
+    read(Name,wanted_hosts).
+pod_status(Name)->
+    read(Name,pod_status).
+container_status(Name)->
+    read(Name,container_status).
+pod(Name)->
+    read(Name,pod).
+dir(Name)->
+    read(Name,dir).
+read(Name,Key)->
+    Return=case read(Name) of
 	       []->
-		   {error,[eexist,PodId,?FUNCTION_NAME,?MODULE,?LINE]};
-	       [{_PodId,PodVsn,AppId,AppVsn,AppGitPath,AppEnv,AppHosts}] ->
+		   {error,[eexist,Name,?FUNCTION_NAME,?MODULE,?LINE]};
+	       [{_Name,Vsn,Containers,WantedHosts,PodStatus,ContainerStatus,Pod,Dir}] ->
 		   case  Key of
-		       pod_vsn->
-			   PodVsn;
-		       app_id ->
-			   AppId;
-		       app_vsn->
-			   AppVsn;
-		       app_git_path->
-			   AppGitPath;
-		       app_env->
-			   AppEnv;
-		       app_hosts->
-			   AppHosts;
+		       vsn->
+			   Vsn;
+		       containers->
+			   Containers;
+		       wanted_hosts->
+			   WantedHosts;
+		       pod_status->
+			   PodStatus;
+		       container_status->
+			   ContainerStatus;
+		       pod->
+			   Pod;
+		       dir->
+			   Dir;
 		       Err ->
 			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 		   end
 	   end,
     Return.
-delete(PodId) ->
+
+set_pod(Name,Pod)->
     F = fun() -> 
-		ToBeRemoved=[X||X<-mnesia:read({?TABLE,PodId}),
-				X#?RECORD.pod_id=:=PodId],
+		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
+					  X#?RECORD.name==Name])),
+		case RecordList of
+		    []->
+			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
+		    [S1]->
+			NewRecord=S1#?RECORD{pod=Pod},
+			mnesia:delete_object(S1),
+			mnesia:write(NewRecord)
+		end
+	end,
+    mnesia:transaction(F).
+set_dir(Name,Dir)->
+    F = fun() -> 
+		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
+					  X#?RECORD.name==Name])),
+		case RecordList of
+		    []->
+			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
+		    [S1]->
+			NewRecord=S1#?RECORD{dir=Dir},
+			mnesia:delete_object(S1),
+			mnesia:write(NewRecord)
+		end
+	end,
+    mnesia:transaction(F).
+update_pod_status(Name,NewStatus)->
+    F = fun() -> 
+		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
+					  X#?RECORD.name==Name])),
+		case RecordList of
+		    []->
+			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
+		    [S1]->
+			NewRecord=S1#?RECORD{pod_status=NewStatus},
+			mnesia:delete_object(S1),
+			mnesia:write(NewRecord)
+		end
+	end,
+    mnesia:transaction(F).
+update_container_status(Name,{AppId,AppVsn,NewStatus})->
+    F = fun() -> 
+		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
+					  X#?RECORD.name==Name])),
+		case RecordList of
+		    []->
+			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
+		    [S1]->
+			NewContainerStatus=lists:keyreplace(AppId, 1, S1#?RECORD.container_status, {AppId,AppVsn,NewStatus}),
+			NewRecord=S1#?RECORD{container_status=NewContainerStatus},
+			mnesia:delete_object(S1),
+			mnesia:write(NewRecord)
+		end
+	end,
+    mnesia:transaction(F).
+
+delete(Name) ->
+    F = fun() -> 
+		ToBeRemoved=[X||X<-mnesia:read({?TABLE,Name}),
+				X#?RECORD.name=:=Name],
 		case ToBeRemoved of
 		    []->
 			mnesia:abort(no_to_remove);
 		    ToBeRemoved ->
-			[mnesia:delete_object(HostInfo)||HostInfo<-ToBeRemoved]
+			[mnesia:delete_object(PodSpec)||PodSpec<-ToBeRemoved]
 		end 
 	end,
     mnesia:transaction(F).
