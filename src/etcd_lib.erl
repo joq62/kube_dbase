@@ -214,14 +214,16 @@ init_pod_specs()->
 init_pod_specs([],Result)->
     R=[R||R<-Result,
 	  R/={atomic,ok}],
-    case R of
-	[]->
-	    ok;
-	R->
-	    {error,[R]}
-    end;
+    X=case R of
+	  []->
+	      ok;
+	  R->
+	      {error,[R]}
+      end,
+    X;
 init_pod_specs([PodSpecFile|T],Acc)->
     {ok,Info}=file:consult(PodSpecFile),
+   
     [{name,Name},{vsn,Vsn},{containers,Containers},{wanted_hosts,WantedHosts}]=Info,
     R=db_pod_spec:create(Name,Vsn,Containers,WantedHosts),
     init_pod_specs(T,[R|Acc]).
