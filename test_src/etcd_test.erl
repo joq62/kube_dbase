@@ -117,8 +117,9 @@ cluster()->
 %% Returns: non
 %% --------------------------------------------------------------------
 deployment_spec()->
-    [{"dep_1","1.0.0",[{"mymath","1.0.0",3}],"lgh"},
-     {"dep_2","1.0.0",[{"mymath","1.0.0",1}],"lgh"}]=db_deployment_spec:read_all(),
+   [{"dep_1","1.0.0",[{"mymath","1.0.0",3}],"lgh"},
+    {"dep_2","1.0.0",[{"mymath","1.0.0",1}],"lgh"},
+    {"dep_10","1.0.0",[{"mymath","1.0.0",2}],"stage"}]=db_deployment_spec:read_all(),
 
     [{"dep_1","1.0.0",[{"mymath","1.0.0",3}],"lgh"}]=db_deployment_spec:read("dep_1"),
     [{"dep_2","1.0.0",[{"mymath","1.0.0",1}],"lgh"}]=db_deployment_spec:read("dep_2"),
@@ -130,6 +131,11 @@ deployment_spec()->
 
     [{"mymath","1.0.0",3}]=db_deployment_spec:pods("dep_1"),
     [{"mymath","1.0.0",1}]=db_deployment_spec:pods("dep_2"),
+
+    [{"dep_1","1.0.0",[{"mymath","1.0.0",3}],"lgh"},
+     {"dep_2","1.0.0",[{"mymath","1.0.0",1}],"lgh"}]=db_deployment_spec:key_cluster_id("lgh"),
+    [{"dep_10","1.0.0",[{"mymath","1.0.0",2}],"stage"}]=db_deployment_spec:key_cluster_id("stage"),
+    
 
     "lgh"=db_deployment_spec:cluster_id("dep_1"),
     "lgh"=db_deployment_spec:cluster_id("dep_2"),

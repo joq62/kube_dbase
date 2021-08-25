@@ -51,6 +51,14 @@ read(Name)->
 	   end,
     Result.
 
+%%%
+key_cluster_id(WantedClusterId)->
+    AllSpecs=read_all(),    
+    Result=[{Name,Vsn,Pods,ClusterId}||{Name,Vsn,Pods,ClusterId}<-AllSpecs,
+				       WantedClusterId==ClusterId],
+    Result.
+
+%%%%
 vsn(Name)->
     read(Name,vsn).
 pods(Name)->
