@@ -1,8 +1,8 @@
-{{2021,8,24},
- {23,51,35},
+{{2021,8,25},
+ {22,53,0},
  'etcd_test@joq62-X550CA',log,"Successful starting of server",
  [kubelet_server]}.
-{{2021,8,24},
- {23,51,35},
+{{2021,8,25},
+ {22,53,0},
  'etcd_test@joq62-X550CA',debug,"Cookie",
  [etcd_test_cookie,'etcd_test@joq62-X550CA',init,kubelet_server,77]}.

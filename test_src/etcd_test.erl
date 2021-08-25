@@ -43,13 +43,13 @@ start()->
     ok=pod(),
     io:format("~p~n",[{"Stop pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %   io:format("~p~n",[{"Start deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
- %   ok=deployment_spec(),
- %   io:format("~p~n",[{"Stop deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=deployment_spec(),
+    io:format("~p~n",[{"Stop deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %   io:format("~p~n",[{"Start deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
- %   ok=deployment(),
- %   io:format("~p~n",[{"Stop deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=deployment(),
+    io:format("~p~n",[{"Stop deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %    io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
 %    ok=pass_2(),
@@ -85,12 +85,15 @@ start()->
 %% --------------------------------------------------------------------
 cluster()->
     %ClusterId,MonitorNode,HostNodes,Cookie,ControllerNodes,WorkerNodes
-    [{"lgh",
-      [{"c0_lgh","c0"},
-       {"c2_lgh","c2"},
-       {"asus_lgh","joq62-X550CA"}],
-      "lgh_cookie",not_started}]=db_cluster_spec:read_all(),
-
+   [{"lgh",
+     [{"c0_lgh","c0"},
+      {"c2_lgh","c2"},
+      {"asus_lgh","joq62-X550CA"}],
+     "lgh_cookie",not_started},
+    {"stage",
+     [{"c0_lgh","c0"},{"c2_lgh","c2"}],
+     "stage_cookie",not_started}]=db_cluster_spec:read_all(),
+    
     [{"c0_lgh","c0"},
      {"c2_lgh","c2"},
      {"asus_lgh","joq62-X550CA"}]=db_cluster_spec:hosts("lgh"),
@@ -114,10 +117,24 @@ cluster()->
 %% Returns: non
 %% --------------------------------------------------------------------
 deployment_spec()->
+    [{"dep_1","1.0.0",[{"mymath","1.0.0",3}],"lgh"},
+     {"dep_2","1.0.0",[{"mymath","1.0.0",1}],"lgh"}]=db_deployment_spec:read_all(),
+
+    [{"dep_1","1.0.0",[{"mymath","1.0.0",3}],"lgh"}]=db_deployment_spec:read("dep_1"),
+    [{"dep_2","1.0.0",[{"mymath","1.0.0",1}],"lgh"}]=db_deployment_spec:read("dep_2"),
+    {error,_}=db_deployment_spec:read("glurk"),
     
-    [{"mymath_lgh_c2","mymath","c2","lgh"},
-     {"mymath_c0","mymath","c0","staging"},
-     {"mymath_lgh_c0","mymath","c0","lgh"}]=db_deployment_spec:read_all(),
+    "1.0.0"=db_deployment_spec:vsn("dep_1"),
+    "1.0.0"=db_deployment_spec:vsn("dep_1"),
+    {error,_}=db_deployment_spec:vsn("glurk"),
+
+    [{"mymath","1.0.0",3}]=db_deployment_spec:pods("dep_1"),
+    [{"mymath","1.0.0",1}]=db_deployment_spec:pods("dep_2"),
+
+    "lgh"=db_deployment_spec:cluster_id("dep_1"),
+    "lgh"=db_deployment_spec:cluster_id("dep_2"),
+
+    
     
     ok.
 %% --------------------------------------------------------------------
@@ -128,30 +145,53 @@ deployment_spec()->
 deployment()->
     
    % create(Reference,App,DeploymentSpec,PodNode,HostId,ClusterId,Created)
-    {atomic,ok}=db_deployment:create(ref1,app1,depspec1,podnode1,host1,cluster1,date1),
-    {atomic,ok}=db_deployment:create(ref2,app2,depspec2,podnode2,host2,cluster2,date2),	
-    {atomic,ok}=db_deployment:create(ref3,app1,depspec3,podnode1,host1,cluster1,date3),
+    {atomic,ok}=db_deployment:create(dep1,vsn1,pod1,dir1,host1,cluster10,running),
+    {atomic,ok}=db_deployment:create(dep1,vsn1,pod2,dir2,host1,cluster10,not_scheduled),	
+    {atomic,ok}=db_deployment:create(dep2,vsn1,pod3,dir3,host1,cluster10,running),
     
 
     % Normal cases
-    app1=db_deployment:app(ref1),
-    depspec1=db_deployment:deployment(ref1),
-    podnode1=db_deployment:pod(ref1),
-    host1=db_deployment:host(ref1),
-    cluster1=db_deployment:cluster(ref1),
-    date3=db_deployment:created(ref3),
-
-    app1=db_deployment:app(ref3),
+    [{dep2,vsn1,pod3,dir3,host1,cluster10,running},
+     {dep1,vsn1,pod1,dir1,host1,cluster10,running},
+     {dep1,vsn1,pod2,dir2,host1,cluster10,
+      not_scheduled}]=db_deployment:read_all(),
    
     
+    [{dep1,vsn1,pod1,dir1,host1,cluster10,running},
+     {dep1,vsn1,pod2,dir2,host1,cluster10,not_scheduled}]=db_deployment:read(dep1),
+    [{dep2,vsn1,pod3,dir3,host1,cluster10,running}]=db_deployment:read(dep2),
+    {error,_}=db_deployment:read(glurk),
+    
+
+
+    vsn1=db_deployment:vsn(dep1),
+    vsn1=db_deployment:vsn(dep2),
+    {error,_}=db_deployment:vsn(glurk),
+
+    [{pod1,dir1,host1},{pod2,dir2,host1}]=db_deployment:pod_info(dep1),
+    [{pod3,dir3,host1}]=db_deployment:pod_info(dep2),
+
+    [pod1,pod2]=db_deployment:pod(dep1),
+    [pod3]=db_deployment:pod(dep2),
+
+    [dir1,dir2]=db_deployment:dir(dep1),
+    [dir3]=db_deployment:dir(dep2),
+
+    [host1,host1]=db_deployment:host(dep1),
+    [host1]=db_deployment:host(dep2),
+
+    [cluster10,cluster10]=db_deployment:cluster(dep1),
+    [cluster10]=db_deployment:cluster(dep2),
+
+    [running,not_scheduled]=db_deployment:status(dep1),
+    [running]=db_deployment:status(dep2),
+
+       
     %
-    {atomic,_}=db_deployment:delete(ref1),
-    {error,_}=db_deployment:app(ref1),
+    {atomic,_}=db_deployment:delete(dep1),
+    {error,_}=db_deployment:read(dep1),
     %
-    app1=db_deployment:app(ref3),
-  
-    io:format("~p~n",[db_pod:read_all()]),
-    ok.
+       ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
@@ -201,27 +241,24 @@ pod_spec()->
       "https://github.com/joq62/mymath.git",[]}]=db_pod_spec:containers("mymath"),
     [{"c0_lgh","c0"}]=db_pod_spec:wanted_hosts("balcony_lgh"),
     []=db_pod_spec:deployment("mymath"),
-    {atomic,ok}=db_pod_spec:add_deployment("mymath",pod1,dir1,running,not_started),
-    [{pod1,dir1,running,not_started}]=db_pod_spec:deployment("mymath"),
-    {atomic,ok}=db_pod_spec:update_deployment("mymath",pod1,dir1,running,running),
-    [{pod1,dir1,running,running}]=db_pod_spec:deployment("mymath"), 
+    {atomic,ok}=db_pod_spec:add_deployment("mymath",pod1,dir1,host_id1,running,not_started),
+    [{pod1,dir1,host_id1,running,not_started}]=db_pod_spec:deployment("mymath"),
+    {atomic,ok}=db_pod_spec:update_deployment("mymath",pod1,dir1,host_id1,running,running),
+    [{pod1,dir1,host_id1,running,running}]=db_pod_spec:deployment("mymath"), 
 
-    {atomic,ok}=db_pod_spec:add_deployment("mymath",pod2,dir2,not_running,not_started),
-    [{pod2,dir2,not_running,not_started},
-     {pod1,dir1,running,running}]=db_pod_spec:deployment("mymath"), 
+    {atomic,ok}=db_pod_spec:add_deployment("mymath",pod2,dir2,host_id2,not_running,not_started),
+    [{pod2,dir2,host_id2,not_running,not_started},
+    {pod1,dir1,host_id1,running,running}]=db_pod_spec:deployment("mymath"), 
     
-    {pod1,dir1,running,running}=db_pod_spec:deployment("mymath",pod1),
+    {pod1,dir1,host_id1,running,running}=db_pod_spec:deployment("mymath",pod1),
     []=db_pod_spec:deployment("mymath",glurk),
     
-    {atomic,ok}=db_pod_spec:update_deployment("mymath",pod2,dir2,glurk,running),
+    {atomic,ok}=db_pod_spec:update_deployment("mymath",pod2,dir2,host_id2,glurk,running),
     {atomic,ok}=db_pod_spec:delete_deployment("mymath",pod1),
-    {atomic,ok}=db_pod_spec:update_deployment("mymath",pod1,dir1,running,running),
-    [{pod2,dir2,glurk,running}]=db_pod_spec:deployment("mymath"), 
+    {atomic,ok}=db_pod_spec:update_deployment("mymath",pod1,dir1,host_id1,running,running),
+    [{pod2,dir2,host_id2,glurk,running}]=db_pod_spec:deployment("mymath"), 
 
     
-    
-   
-
     true=db_pod_spec:member("mymath"),
     false=db_pod_spec:member("glurk"),
     

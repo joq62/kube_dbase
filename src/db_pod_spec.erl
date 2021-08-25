@@ -33,7 +33,7 @@ create(Name,Vsn,Containers,WantedHosts)->
 		    vsn=Vsn,
 		    containers=Containers,
 		    wanted_hosts=WantedHosts,
-		    deployment_list=[]
+		    deployment_list=[]  % to be removed
 		   },
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
@@ -101,7 +101,7 @@ read(Name,Key)->
 	   end,
     Return.
 
-add_deployment(Name,Pod,Dir,PodStatus,ContainerStatus)->
+add_deployment(Name,Pod,Dir,HostId,PodStatus,ContainerStatus)->
     F = fun() -> 
 		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
 					  X#?RECORD.name==Name])),
@@ -109,7 +109,7 @@ add_deployment(Name,Pod,Dir,PodStatus,ContainerStatus)->
 		    []->
 			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
 		    [S1]->
-			NewDeployment={Pod,Dir,PodStatus,ContainerStatus},
+			NewDeployment={Pod,Dir,HostId,PodStatus,ContainerStatus},
 			NewDeploymentList=[NewDeployment|lists:keydelete(Pod, 1, S1#?RECORD.deployment_list)],
 			NewRecord=S1#?RECORD{deployment_list=NewDeploymentList},
 			mnesia:delete_object(S1),
@@ -118,7 +118,7 @@ add_deployment(Name,Pod,Dir,PodStatus,ContainerStatus)->
       end,
     mnesia:transaction(F).
 
-update_deployment(Name,Pod,Dir,PodStatus,ContainerStatus)->
+update_deployment(Name,Pod,Dir,HostId,PodStatus,ContainerStatus)->
     F = fun() -> 
 		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
 					  X#?RECORD.name==Name])),
@@ -126,7 +126,7 @@ update_deployment(Name,Pod,Dir,PodStatus,ContainerStatus)->
 		    []->
 			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
 		    [S1]->
-			NewDeployment={Pod,Dir,PodStatus,ContainerStatus},
+			NewDeployment={Pod,Dir,HostId,PodStatus,ContainerStatus},
 			NewDeploymentList=lists:keyreplace(Pod, 1,S1#?RECORD.deployment_list,NewDeployment),
 			NewRecord=S1#?RECORD{deployment_list=NewDeploymentList},
 			mnesia:delete_object(S1),

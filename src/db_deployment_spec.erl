@@ -7,9 +7,9 @@
 -define(TABLE, deployment_info).
 -define(RECORD,deployment_info).
 -record(deployment_info,{
-			 deployment_id,
-			 pod_id,
-			 host_id,
+			 name,
+			 vsn,
+			 pods,
 			 cluster_id
 			}).
 
@@ -17,8 +17,7 @@
 
 % End Special 
 create_table()->
-    Result={atomic,ok}=mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)},
-				{type,bag}]),
+    Result={atomic,ok}=mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)}]),
     mnesia:wait_for_tables([?TABLE], 20000),
     Result.
 
@@ -27,11 +26,11 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(DeploymentId,PodId,HostId,ClusterId)->
+create(Name,Vsn,Pods,ClusterId)->
     Record=#?RECORD{
-		    deployment_id=DeploymentId,
-		    pod_id=PodId,
-		    host_id=HostId,
+		    name=Name,
+		    vsn=Vsn,
+		    pods=Pods,
 		    cluster_id=ClusterId
 		   },
     F = fun() -> mnesia:write(Record) end,
@@ -39,23 +38,43 @@ create(DeploymentId,PodId,HostId,ClusterId)->
 
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{DeploymentId,PodId,HostId,ClusterId}||{?RECORD,DeploymentId,PodId,HostId,ClusterId}<-Z].
+    [{Name,Vsn,Pods,ClusterId}||{?RECORD,Name,Vsn,Pods,ClusterId}<-Z].
 
-pods(WantedClusterId)->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{DeploymentId,PodId,HostId}||{?RECORD,DeploymentId,PodId,HostId,ClusterId}<-Z,
-		   WantedClusterId==ClusterId].
-
-hosts(WantedDeploymentId,WantedClusterId)->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [HostId||{?RECORD,DeploymentId,_PodId,HostId,ClusterId}<-Z,
-	     WantedDeploymentId==DeploymentId,
-	     WantedClusterId==ClusterId].
-
-read(WantedDeploymentId)->
+read(Name)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.deployment_id==WantedDeploymentId])),
-    [{HostId,ClusterId}||{?RECORD,_,_PodId,HostId,ClusterId}<-Z].
+		     X#?RECORD.name==Name])),
+    Result=case Z of
+	       []->
+		   {error,[eexist,Name,?FUNCTION_NAME,?MODULE,?LINE]};
+	       _->
+		   [{XName,Vsn,Pods,ClusterId}||{?RECORD,XName,Vsn,Pods,ClusterId}<-Z]
+	   end,
+    Result.
+
+vsn(Name)->
+    read(Name,vsn).
+pods(Name)->
+    read(Name,pods).
+cluster_id(Name)->
+    read(Name,cluster_id).
+read(Name,Key)->
+    Return=case read(Name) of
+	      {error,_}->
+		   {error,[eexist,Name,?FUNCTION_NAME,?MODULE,?LINE]};
+	       [{_Name,Vsn,Pods,ClusterId}] ->
+		   case  Key of
+		       vsn->
+			   Vsn;
+		       pods->
+			   Pods;
+		       cluster_id->
+			   ClusterId;
+		       Err ->
+			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
+		   end
+	   end,
+    Return.
+
 
 do(Q) ->
   F = fun() -> qlc:e(Q) end,

@@ -7,13 +7,14 @@
 -define(TABLE, deployment).
 -define(RECORD,deployment).
 -record(deployment,{
-		    reference,
-		    app,
 		    deployment_spec,
-		    pod_node,
+		    vsn,
+		    pod,
+		    dir,
 		    host_id,
 		    cluster_id,
-		    created
+		    status
+		   
 		  }).
 
 % Start Special 
@@ -29,76 +30,79 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(Reference,App,DeploymentSpec,PodNode,HostId,ClusterId,Created)->
+create(DeploymentSpec,Vsn,Pod,Dir,HostId,ClusterId,Status)->
     
     Record=#?RECORD{
-		    reference=Reference,
-		    app=App,
 		    deployment_spec=DeploymentSpec,
-		    pod_node=PodNode,
+		    vsn=Vsn,
+		    pod=Pod,
+		    dir=Dir,
 		    host_id=HostId,
 		    cluster_id=ClusterId,
-		    created=Created
+		    status=Status
 		   },
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{Reference,App,DeploymentSpec,PodNode,HostId,ClusterId,Created}||{?RECORD,Reference,App,DeploymentSpec,PodNode,HostId,ClusterId,Created}<-Z].
-
-app(Ref)->
-    read(Ref,app).
-deployment(Ref)->
-    read(Ref,deployment_spec).
-pod(Ref)->
-    read(Ref,pod_node).
-host(Ref)->
-    read(Ref,host_id).
-cluster(Ref)->
-    read(Ref,cluster_id).
-created(Ref)->
-    read(Ref,created).
-
-
-read(Ref,Key)->
+    [{DeploymentSpec,Vsn,Pod,Dir,HostId,ClusterId,Status}||{?RECORD,DeploymentSpec,Vsn,Pod,Dir,HostId,ClusterId,Status}<-Z].
+read(DepSpec)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.reference==Ref])),
-    Return=case Z of
+		     X#?RECORD.deployment_spec==DepSpec])),
+    Result=case Z of
 	       []->
-		   {error,["eexists",Ref,?FUNCTION_NAME,?MODULE,?LINE]};
-	       [{?RECORD,Reference,App,DeploymentSpec,PodNode,HostId,ClusterId,Created}] ->
+		   {error,[eexist,DepSpec,?FUNCTION_NAME,?MODULE,?LINE]};
+	       _->
+		   [{DeploymentSpec,Vsn,Pod,Dir,HostId,ClusterId,Status}||{?RECORD,DeploymentSpec,Vsn,Pod,Dir,HostId,ClusterId,Status}<-Z]
+	   end,
+    Result.
+
+vsn(DepSpec)->
+    read(DepSpec,vsn).
+pod_info(DepSpec)->
+    read(DepSpec,pod_info).
+pod(DepSpec)->
+    read(DepSpec,pod).
+dir(DepSpec)->
+    read(DepSpec,dir).
+host(DepSpec)->
+    read(DepSpec,host_id).
+cluster(DepSpec)->
+    read(DepSpec,cluster_id).
+status(DepSpec)->
+    read(DepSpec,status).
+
+read(DepSpec,Key)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
+		     X#?RECORD.deployment_spec==DepSpec])),
+    Result=case Z of
+	       []->
+		   {error,[eexist,DepSpec,?FUNCTION_NAME,?MODULE,?LINE]}; 
+	       _->
 		   case Key of
-		       app->
-			   App;
-		       deployment_spec->
-			   DeploymentSpec;
-		       pod_node->
-			   PodNode;
-		       host_id->
-			   HostId;
-		       cluster_id->
-			   ClusterId;
-		       created->
-			   Created;
-		       Err ->
-			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
+		       vsn->
+			   [Vsn|_]=[R#?RECORD.vsn||R<-Z],
+			   Vsn;
+		       pod->[R#?RECORD.pod||R<-Z];
+		       dir->[R#?RECORD.dir||R<-Z];
+		       host_id->[R#?RECORD.host_id||R<-Z];
+		       cluster_id->[R#?RECORD.cluster_id||R<-Z];
+		       status->[R#?RECORD.status||R<-Z];
+		       pod_info->
+			   [{R#?RECORD.pod,R#?RECORD.dir,R#?RECORD.host_id}||R<-Z];
+		       Err ->{error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 		   end
 	   end,
-    Return.
+    Result.
 
-read(Ref)->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.reference==Ref])),
-    [{App,DeploymentSpec,PodNode,HostId,ClusterId,Created}||{?RECORD,_,App,DeploymentSpec,PodNode,HostId,ClusterId,Created}<-Z].
-
-delete(Ref) ->
+delete(DepSpec) ->
     F = fun() -> 
-		ToBeRemoved=[X||X<-mnesia:read({?TABLE,Ref}),
-				X#?RECORD.reference==Ref],
+		ToBeRemoved=[X||X<-mnesia:read({?TABLE,DepSpec}),
+				X#?RECORD.deployment_spec==DepSpec],
 		case ToBeRemoved of
 		    []->
-			mnesia:abort({ticket,"error",[eexists, Ref]});
+			mnesia:abort({ticket,"error",[eexists, DepSpec]});
 		    ToBeRemoved ->
 			[mnesia:delete_object(Deployment)||Deployment<-ToBeRemoved]
 		end 

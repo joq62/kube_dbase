@@ -100,8 +100,8 @@ init_deployment_specs([],Result)->
     end;
 init_deployment_specs([DeploymentSpecFile|T],Acc)->
     {ok,Info}=file:consult(DeploymentSpecFile),
-    [{deployment_id,DeploymentId},{pod_id,PodId},{host,HostId},{cluster,ClusterId}]=Info,
-    R={atomic,ok}=db_deployment_spec:create(DeploymentId,PodId,HostId,ClusterId),  
+    [{name,Name},{vsn,Vsn},{pods,Pods},{cluster_id,ClusterId}]=Info,
+    R=db_deployment_spec:create(Name,Vsn,Pods,ClusterId),  
     init_deployment_specs(T,[R|Acc]).
     
 

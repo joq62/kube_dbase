@@ -10,7 +10,7 @@ doc_gen:
 unit_test:
 	rm -rf ebin/* src/*.beam *.beam test_src/*.beam test_ebin;
 	rm -rf  *~ */*~  erl_cra*;
-	rm -rf *_specs *_config *.log;
+	rm -rf *_specs *_config deployment *.log;
 	mkdir test_ebin;
 #	interface
 	erlc -I ../interfaces -o test_ebin ../interfaces/*.erl;
