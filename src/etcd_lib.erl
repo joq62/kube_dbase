@@ -60,7 +60,17 @@ init()->
     ok=init_cluster(),
     ok=init_pod(),
     ok=init_deployment(),
+    ok=init_kubelet(),
     ok.
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+init_kubelet()->
+    ok=db_kubelet:create_table(), 
+    ok.
+
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 

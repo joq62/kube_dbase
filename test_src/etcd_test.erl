@@ -32,24 +32,28 @@ start()->
     io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
     io:format("~p~n",[{"Start cluster()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=cluster(),
+ %   ok=cluster(),
     io:format("~p~n",[{"Stop cluster()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
     io:format("~p~n",[{"Start pod_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=pod_spec(),
+  %  ok=pod_spec(),
     io:format("~p~n",[{"Stop pod_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
     io:format("~p~n",[{"Start pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=pod(),
+  %  ok=pod(),
     io:format("~p~n",[{"Stop pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
     io:format("~p~n",[{"Start deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=deployment_spec(),
+  %  ok=deployment_spec(),
     io:format("~p~n",[{"Stop deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
     io:format("~p~n",[{"Start deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=deployment(),
+   % ok=deployment(),
     io:format("~p~n",[{"Stop deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+    io:format("~p~n",[{"Start kubelet()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=kubelet(),
+    io:format("~p~n",[{"Stop kubelet",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %    io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
 %    ok=pass_2(),
@@ -78,6 +82,28 @@ start()->
     ok.
 
 
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+kubelet()->
+    Id1=integer_to_list(1),
+    H1=h1,
+    C1=c1,
+    Pod1=pod1,
+    Dir1=dir1,
+    KP1=kp1,
+    Cookie1=cookie1,
+    Containers1=[cont1,cont2,cont3],
+    
+    false=db_kubelet:member(Id1,H1,C1),
+    {atomic,ok}=db_kubelet:create(Id1,H1,C1,Pod1,Dir1,KP1,Cookie1,Containers1),
+    true=db_kubelet:member(Id1,H1,C1),
+    glurk=db_kubelet:containers(Pod1),
+
+    ok.
+    
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
