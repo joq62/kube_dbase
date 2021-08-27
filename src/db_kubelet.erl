@@ -62,6 +62,8 @@ member(WantedPodId,WantedHostId,WantedClusterId)->
 
 containers(Pod)->
     read_pod(Pod,containers).
+dir(Pod)->
+    read_pod(Pod,dir).
 
 
 read_pod(Pod,Key)->
