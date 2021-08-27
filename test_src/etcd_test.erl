@@ -1,6 +1,6 @@
 %%% -------------------------------------------------------------------
 %%% Author  : uabjle
-%%% Description :  
+%%% Description :  1
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
@@ -100,8 +100,11 @@ kubelet()->
     false=db_kubelet:member(Id1,H1,C1),
     {atomic,ok}=db_kubelet:create(Id1,H1,C1,Pod1,Dir1,KP1,Cookie1,Containers1),
     true=db_kubelet:member(Id1,H1,C1),
-    glurk=db_kubelet:containers(Pod1),
-
+    [cont1,cont2,cont3]=db_kubelet:containers(Pod1),
+    {atomic,ok}==db_kubelet:add_container(Pod1,cont_added),
+    [cont_added,cont1,cont2,cont3]=db_kubelet:containers(Pod1),
+    {atomic,ok}==db_kubelet:delete_container(Pod1,cont2),
+    [cont_added,cont1,cont3]=db_kubelet:containers(Pod1),
     ok.
     
 %% --------------------------------------------------------------------

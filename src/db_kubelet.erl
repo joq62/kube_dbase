@@ -70,8 +70,8 @@ read_pod(Pod,Key)->
     Result=case Z of
 	       []->
 		   {error,[eexist,Pod,?FUNCTION_NAME,?MODULE,?LINE]}; 
-	       _->
-		   extract(Z,Key)
+	       [S1]->
+		   extract(S1,Key)
 	   end,
     Result.
 read_id(Id,HostId,ClusterId,Key)->
@@ -82,25 +82,25 @@ read_id(Id,HostId,ClusterId,Key)->
     Result=case Z of
 	       []->
 		   {error,[eexist,Id,HostId,ClusterId,Key,?FUNCTION_NAME,?MODULE,?LINE]}; 
-	       _->
-		   extract(Z,Key)
+	       [S1]->
+		   extract(S1,Key)
 	   end,
     Result.
-extract(R,Key)->
+extract({?RECORD,PodId,HostId,ClusterId,Pod,Dir,KubeletPod,Cookie,Containers},Key)->
     Result=case Key of
-	       id->R#?RECORD.id;
-	       host_id->R#?RECORD.host_id;
-	       cluster_id->R#?RECORD.cluster_id;
-	       pod->R#?RECORD.pod;
-	       dir->R#?RECORD.dir;
-	       kubelet_pod->R#?RECORD.kubelet_pod;
-	       cookie->R#?RECORD.cookie;
-	       containers->R#?RECORD.containers;
+	       id->PodId;
+	       host_id->HostId;
+	       cluster_id->ClusterId;
+	       pod->Pod;
+	       dir->Dir;
+	       kubelet_pod->KubeletPod;
+	       cookie->Cookie;
+	       containers->Containers;
 	       Err ->{error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 	   end,
     Result.
-    
-    
+
+
 add_container(Pod,NewContainer)->
  F = fun() -> 
 	     RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
