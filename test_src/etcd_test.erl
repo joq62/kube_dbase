@@ -100,11 +100,16 @@ kubelet()->
     false=db_kubelet:member(Id1,H1,C1),
     {atomic,ok}=db_kubelet:create(Id1,H1,C1,Pod1,Dir1,KP1,Cookie1,Containers1),
     true=db_kubelet:member(Id1,H1,C1),
+    
+    [{"1",h1,c1,pod1,dir1,kp1,cookie1,
+      [cont1,cont2,cont3]}]=db_kubelet:kubelet_pod_info(kp1),
+    
     [cont1,cont2,cont3]=db_kubelet:containers(Pod1),
     {atomic,ok}==db_kubelet:add_container(Pod1,cont_added),
     [cont_added,cont1,cont2,cont3]=db_kubelet:containers(Pod1),
     {atomic,ok}==db_kubelet:delete_container(Pod1,cont2),
     [cont_added,cont1,cont3]=db_kubelet:containers(Pod1),
+    
     ok.
     
 %% --------------------------------------------------------------------

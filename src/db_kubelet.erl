@@ -74,6 +74,13 @@ read_pod(Pod,Key)->
 		   extract(S1,Key)
 	   end,
     Result.
+kubelet_pod_info(WantedKubeletPod)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),
+		     X#?RECORD.kubelet_pod==WantedKubeletPod])),
+    [{PodId,HostId,ClusterId,Pod,Dir,KubeletPod,Cookie,Containers}||
+	{?RECORD,PodId,HostId,ClusterId,Pod,Dir,KubeletPod,Cookie,Containers}<-Z].
+
+    
 read_id(Id,HostId,ClusterId,Key)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
 		     X#?RECORD.id==Id,
@@ -99,7 +106,6 @@ extract({?RECORD,PodId,HostId,ClusterId,Pod,Dir,KubeletPod,Cookie,Containers},Ke
 	       Err ->{error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 	   end,
     Result.
-
 
 add_container(Pod,NewContainer)->
  F = fun() -> 
