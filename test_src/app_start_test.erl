@@ -58,15 +58,19 @@ setup()->
     
     {ok,MonitorNodeNameAtom}=application:get_env(unit_test,monitor_node),
     MonitorNodeName=atom_to_list(MonitorNodeNameAtom),
-    {ok,HostId}=inet:gethostname(),
-    MonitorNode=list_to_atom(MonitorNodeName++"@"++HostId),
-    Env=[{cluster_id,ClusterIdAtom},{monitor_node,MonitorNode}],
+    
+    {ok,CookieAtom}=application:get_env(unit_test,cookie),
+    Cookie=atom_to_list(CookieAtom),
+    
+
+    Env=[{cluster_id,ClusterId},{monitor_node,MonitorNodeName},
+	 {cookie,Cookie}],
     ok=application:set_env([{support,Env},
 			    {kubelet,Env},
 			    {etcd,Env}]),
     ok=application:start(support),
     ok=application:start(etcd),
-    ok=application:start(kubelet),
+ %   ok=application:start(kubelet),
     
     ok.
 

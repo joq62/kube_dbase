@@ -32,6 +32,7 @@ unit_test:
 	erl -pa ebin -pa test_ebin\
 	    -setcookie etcd_test_cookie\
 	    -sname etcd_test\
+	    -unit_test cookie etcd_test_cookie\
 	    -unit_test cluster_id glurk\
 	    -unit_test monitor_node etcd_test\
 	    -run unit_test start_test test_src/test.config

@@ -55,9 +55,9 @@ start()->
     ok=kubelet(),
     io:format("~p~n",[{"Stop kubelet",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-%    io:format("~p~n",[{"Start pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=pass_2(),
-%    io:format("~p~n",[{"Stop pass_2()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start cluster_info()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=cluster_info(),
+    io:format("~p~n",[{"Stop cluster_info",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %    io:format("~p~n",[{"Start pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
 %    ok=pass_3(),
@@ -81,6 +81,20 @@ start()->
     io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
 
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+cluster_info()->
+    "glurk"=db_cluster_info:cluster(),
+    'etcd_test@joq62-X550CA'=db_cluster_info:monitor(),
+    "etcd_test_cookie"=db_cluster_info:cookie(),
+    
+  
+    
+    ok.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 

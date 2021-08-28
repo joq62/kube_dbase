@@ -8,12 +8,9 @@
 -define(RECORD,cluster_info).
 -record(cluster_info,{
 		      cluster_id,
-		      controller_host,
-		      num_worker_hosts,
-		      worker_hosts,
-		      cookie,
-		      controller_node
-		  }).
+		      monitor_node,
+		      cookie
+		     }).
 % Start Special 
 
 % End Special 
@@ -26,62 +23,44 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(ClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode)->
+create(ClusterId,MonitorNode,Cookie)->
     Record=#?RECORD{
 		    cluster_id=ClusterId,
-		    controller_host=ControllerHost,
-		    num_worker_hosts=NumWorkers,
-		    worker_hosts=WorkerHosts,
-		    cookie=Cookie,
-		    controller_node=ControllerNode
+		    monitor_node=MonitorNode,
+		    cookie=Cookie
 		   },
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{ClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode}||
-	{?RECORD,ClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode}<-Z].
+    [{ClusterId,MonitorNode,Cookie}||
+	{?RECORD,ClusterId,MonitorNode,Cookie}<-Z].
 
-controller(ClusterId)->
-    read(ClusterId,controller_host).
-num_workers(ClusterId)->
-    read(ClusterId,num_woorker_hosts).
-workers(ClusterId)->
-    read(ClusterId, worker_hosts).
-cookie(ClusterId)->
-    read(ClusterId,cookie).
-controller_node(ClusterId)->
-    read(ClusterId,controller_node).
-    
-read(ClusterId,Key)->
-    Return=case read(ClusterId) of
+cluster()->
+    read(cluster_id).
+monitor()->
+    read(monitor_node).
+cookie()->
+    read(cookie).
+
+read(Key)->
+    Return=case read() of
 	       []->
-		   {error,[eexist,ClusterId,?FUNCTION_NAME,?MODULE,?LINE]};
-	       [{ClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode}] ->
+		   {error,[eexist,?FUNCTION_NAME,?MODULE,?LINE]};
+	       [{ClusterId,MonitorNode,Cookie}] ->
 		   case  Key of
-		       cluster_id->
-			   ClusterId;
-		       controller_host->
-			   ControllerHost;
-		       num_worker_hosts->
-			   NumWorkers;
-		       worker_hosts->
-			   WorkerHosts;
-		       cookie->
-			   Cookie;
-		       controller_node->
-			   ControllerNode;
+		       cluster_id->ClusterId;
+		       monitor_node->MonitorNode;
+		       cookie->Cookie;
 		       Err ->
 			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 		   end
 	   end,
     Return.
-read(ClusterId)->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.cluster_id==ClusterId])),
-    [{XClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode}||
-	       {?RECORD,XClusterId,ControllerHost,NumWorkers,WorkerHosts,Cookie,ControllerNode}<-Z].
+read()->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
+    [{ClusterId,MonitorNode,Cookie}||{?RECORD,ClusterId,MonitorNode,Cookie}<-Z].
 
 do(Q) ->
   F = fun() -> qlc:e(Q) end,

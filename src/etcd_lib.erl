@@ -52,6 +52,7 @@ init()->
     mnesia:delete_schema([node()]),
     mnesia:start(),
     %Git info
+    ok=init_cluster_info(),
     ok=init_cluster_specs(),
     ok=init_host_info(),
     ok=init_pod_specs(),
@@ -61,6 +62,24 @@ init()->
     ok=init_pod(),
     ok=init_deployment(),
     ok=init_kubelet(),
+    ok.
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+init_cluster_info()->
+    ok=db_cluster_info:create_table(), 
+    {ok,ClusterId}=application:get_env(cluster_id),
+    {ok,MonitorNodeName}=application:get_env(monitor_node),
+    {ok,HostId}=inet:gethostname(),
+    MonitorNode=list_to_atom(MonitorNodeName++"@"++HostId),
+    {ok,Cookie}=application:get_env(cookie),
+    {atomic,ok}=db_cluster_info:create(ClusterId,MonitorNode,Cookie),
+    io:format("ClusterId,MonitorNode,Cookie ~p~n",[{ClusterId,MonitorNode,Cookie,?MODULE,?LINE}]),
+    
+
+    
     ok.
 %% --------------------------------------------------------------------
 %% Function:start
