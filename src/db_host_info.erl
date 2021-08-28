@@ -40,6 +40,37 @@ create(Alias,HostId,Ip,SshPort,UId,Pwd)->
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
+member(Alias)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
+		     X#?RECORD.alias==Alias])),
+    Member=case Z of
+	       []->
+		   false;
+	       _->
+		   true
+	   end,
+    Member.
+
+ssh_info(WantedAlias)->
+    read(WantedAlias,ssh_info).
+host_id(WantedAlias)->
+    read(WantedAlias,alias).
+read(WantedAlias,Key)->
+    Return=case read(WantedAlias) of
+	       []->
+		   {error,[eexist,WantedAlias,?FUNCTION_NAME,?MODULE,?LINE]};
+	       [{_Alias,HostId,Ip,SshPort,UId,Pwd}] ->
+		   case  Key of
+		       ssh_info->
+			   {Ip,SshPort,UId,Pwd};
+		       host_id->
+			   HostId;
+		       Err ->
+			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
+		   end
+	   end,
+    Return.
+
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
     [{Alias,HostId,Ip,SshPort,UId,Pwd}||{?RECORD,Alias,HostId,Ip,SshPort,UId,Pwd}<-Z].
