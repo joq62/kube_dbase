@@ -54,7 +54,7 @@ member(Alias)->
 ssh_info(WantedAlias)->
     read(WantedAlias,ssh_info).
 host_id(WantedAlias)->
-    read(WantedAlias,alias).
+    read(WantedAlias,host_id).
 read(WantedAlias,Key)->
     Return=case read(WantedAlias) of
 	       []->
