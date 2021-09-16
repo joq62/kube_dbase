@@ -7,12 +7,37 @@
 -define(TABLE,cluster_spec).
 -define(RECORD,cluster_spec).
 -record(cluster_spec,{
-		      name,
-		      hosts,
-		      cookie,
-		      status
-		  }).
-% Start Special 
+		      cluster_id,
+		      monitor_node,
+		      cookie
+		     }).
+% Git
+-define(ClusterConfigPath,"https://github.com/joq62/cluster_config.git").
+-define(ClusterConfigDirName,"cluster_config").
+-define(ClusterConfigFile,"cluster_config/cluster.config").
+-define(ClusterConfigFileName,"cluster.config").
+
+git_init()->
+    os:cmd("rm -rf "++?ClusterConfigDirName),
+    os:cmd("git clone "++?ClusterConfigPath),
+    ClusterConfigFile=filename:join([?ClusterConfigDirName,?ClusterConfigFileName]),
+    {ok,Info}=file:consult(ClusterConfigFile),
+    ok=init_cluster_specs(Info,[]),
+    os:cmd("rm -rf "++?ClusterConfigDirName),
+    ok.
+init_cluster_specs([],Result)->
+    R=[R||R<-Result,
+	  R/={atomic,ok}],
+    case R of
+	[]->
+	    ok;
+	R->
+	    {error,[R]}
+    end;
+    
+init_cluster_specs([[{cluster_name,ClusterName},{hosts,Hosts},{cookie,Cookie}]|T],Acc)->
+    R=create(ClusterName,Hosts,Cookie),
+    init_cluster_specs(T,[R|Acc]).
 
 % End Special 
 create_table()->
@@ -24,68 +49,55 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(Name,Hosts,Cookie)->
-    Status=not_started,
+create(ClusterId,MonitorNode,Cookie)->
     Record=#?RECORD{
-		    name=Name,
-		    hosts=Hosts,
-		    cookie=Cookie,
-		    status=Status
+		    cluster_id=ClusterId,
+		    monitor_node=MonitorNode,
+		    cookie=Cookie
 		   },
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
+add_node(Node,StorageType)->
+    Result=case mnesia:change_config(extra_db_nodes, [Node]) of
+	       {ok,[Node]}->
+		   mnesia:add_table_copy(schema, node(),StorageType),
+		   mnesia:add_table_copy(?TABLE, node(), StorageType),
+		   Tables=mnesia:system_info(tables),
+		   mnesia:wait_for_tables(Tables,20*1000);
+	       Reason ->
+		   Reason
+	   end,
+    Result.
 
 read_all() ->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{Name,Hosts,Cookie,Status}||
-	{?RECORD,Name,Hosts,Cookie,Status}<-Z].
+    [{ClusterId,MonitorNode,Cookie}||
+	{?RECORD,ClusterId,MonitorNode,Cookie}<-Z].
 
-hosts(Name)->
-    read(Name,hosts).
-cookie(Name)->
-    read(Name,cookie).
-status(Name)->
-    read(Name,status).
-    
-read(Name,Key)->
-    Return=case read(Name) of
+cluster()->
+    read(cluster_id).
+monitor()->
+    read(monitor_node).
+cookie()->
+    read(cookie).
+
+read(Key)->
+    Return=case read() of
 	       []->
-		   {error,[eexist,Name,?FUNCTION_NAME,?MODULE,?LINE]};
-	       [{Name,Hosts,Cookie,Status}] ->
+		   {error,[eexist,?FUNCTION_NAME,?MODULE,?LINE]};
+	       [{ClusterId,MonitorNode,Cookie}] ->
 		   case  Key of
-		       hosts->
-			   Hosts;
-		       cookie->
-			   Cookie;
-		       status->
-			   Status;
+		       cluster_id->ClusterId;
+		       monitor_node->MonitorNode;
+		       cookie->Cookie;
 		       Err ->
 			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 		   end
 	   end,
     Return.
-
-set_status(Name,NewStatus)->
-    F = fun() -> 
-		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
-					  X#?RECORD.name==Name])),
-		case RecordList of
-		    []->
-			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
-		    [S1]->
-			NewRecord=S1#?RECORD{status=NewStatus},
-			mnesia:delete_object(S1),
-			mnesia:write(NewRecord)
-		end
-	end,
-    mnesia:transaction(F).
-
-
-read(Name)->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.name==Name])),
-    [{XName,Hosts,Cookie,Status}||
-	       {?RECORD,XName,Hosts,Cookie,Status}<-Z].
+read()->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
+    [{ClusterId,MonitorNode,Cookie}||{?RECORD,ClusterId,MonitorNode,Cookie}<-Z].
 
 do(Q) ->
   F = fun() -> qlc:e(Q) end,

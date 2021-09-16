@@ -4,18 +4,45 @@
 
 -include_lib("stdlib/include/qlc.hrl").
 
--define(TABLE,pod_spec). 
+-define(TABLE,pod_spec).
 -define(RECORD,pod_spec).
-
 -record(pod_spec,{
-		  name,
-		  vsn,
-		  containers,
-		  wanted_hosts,
-		  deployment_list
+		  pod_id,
+		  pod_vsn,
+		  application_list,   %[{app,vsn,git_path,app_env}]
+		  replicas,
+		  host_list
 		  }).
 
-% Start Special 
+%% Git init 
+-define(PodSpecsPath,"https://github.com/joq62/pod_specs.git").
+-define(PodSpecsDirName,"pod_specs").
+
+git_init()->
+    os:cmd("git clone "++?PodSpecsPath),
+    {ok,FileNames}=file:list_dir(?PodSpecsDirName),
+    PodSpecFiles=[filename:join([?PodSpecsDirName,FileName])||FileName<-FileNames,
+							      ".pod_spec"==filename:extension(FileName)],
+    ok=init_pod_specs(PodSpecFiles,[]),
+    os:cmd("rm -rf "++?PodSpecsDirName),
+    ok.
+
+init_pod_specs([],Result)->
+    R=[R||R<-Result,
+	  R/={atomic,ok}],
+    X=case R of
+	  []->
+	      ok;
+	  R->
+	      {error,[R]}
+      end,
+    X;
+init_pod_specs([PodSpecFile|T],Acc)->
+    {ok,Info}=file:consult(PodSpecFile),
+   
+    [{pod_id,PodId},{pod_vsn,PodVsn},{application_list,ApplicationList},{replicas,Replicas},{host_list,HostList}]=Info,
+    R=create(PodId,PodVsn,ApplicationList,Replicas,HostList),
+    init_pod_specs(T,[R|Acc]).
 
 % End Special 
 create_table()->
@@ -27,29 +54,32 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(Name,Vsn,Containers,WantedHosts)->
+add_node(Node,StorageType)->
+    Result=case mnesia:change_config(extra_db_nodes, [Node]) of
+	       {ok,[Node]}->
+		   mnesia:add_table_copy(schema, node(),StorageType),
+		   mnesia:add_table_copy(?TABLE, node(), StorageType),
+		   Tables=mnesia:system_info(tables),
+		   mnesia:wait_for_tables(Tables,20*1000);
+	       Reason ->
+		   Reason
+	   end,
+    Result.
+
+create(PodId,PodVsn,ApplicationList,Replicas,HostList)->
     Record=#?RECORD{
-		    name=Name,
-		    vsn=Vsn,
-		    containers=Containers,
-		    wanted_hosts=WantedHosts,
-		    deployment_list=[]  % to be removed
+		    pod_id=PodId,
+		    pod_vsn=PodVsn,
+		    application_list=ApplicationList, 
+		    replicas=Replicas,
+		    host_list=HostList
 		   },
     F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
 
-read_all() ->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    [{Name,Vsn,Containers,WantedHosts,DeploymentList}||{?RECORD,Name,Vsn,Containers,WantedHosts,DeploymentList}<-Z].
-
-read(Name)->
+member(Object)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.name==Name])),
-    [{XName,Vsn,Containers,WantedHosts,DeploymentList}||{?RECORD,XName,Vsn,Containers,WantedHosts,DeploymentList}<-Z].
-
-member(Name)->
-    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
-		     X#?RECORD.name==Name])),
+		     X#?RECORD.pod_id==Object])),
     Member=case Z of
 	       []->
 		   false;
@@ -58,111 +88,54 @@ member(Name)->
 	   end,
     Member.
 
-vsn(Name)->
-    read(Name,vsn).
-containers(Name)->
-    read(Name,containers).
-wanted_hosts(Name)->
-    read(Name,wanted_hosts).
+read_all() ->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
+    [{PodId,PodVsn,ApplicationList,Replicas,HostList}||{?RECORD,PodId,PodVsn,ApplicationList,Replicas,HostList}<-Z].
 
-pod_status(Name)->
-    read(Name,pod_status).
-container_status(Name)->
-    read(Name,container_status).
-deployment(Name)->
-    read(Name,deployment).
-deployment(Name,Pod)->
-    Result=case lists:keyfind(Pod,1,read(Name,deployment)) of
-	       false->
-		   [];
-	       Deployment ->
-		   Deployment
-	   end,
-    Result.
-    
-	
-read(Name,Key)->
-    Return=case read(Name) of
+read(Object)->
+    Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
+		     X#?RECORD.pod_id==Object])),
+    [Info]=[{PodId,PodVsn,ApplicationList,Replicas,HostList}||{?RECORD,PodId,PodVsn,ApplicationList,Replicas,HostList}<-Z],
+    Info.
+
+
+vsn(Object)->
+    read(Object,pod_vsn).
+application_list(Object)->
+    read(Object,application_list).
+replicas(Object)->
+    read(Object,replicas).
+host_list(Object)->
+    read(Object,host_list).
+read(Object,Key)->
+    Return=case read(Object) of
 	       []->
-		   {error,[eexist,Name,?FUNCTION_NAME,?MODULE,?LINE]};
-	       [{_Name,Vsn,Containers,WantedHosts,DeploymentList}] ->
+		   {error,[eexist,Object,?FUNCTION_NAME,?MODULE,?LINE]};
+	       {_PodId,PodVsn,ApplicationList,Replicas,HostList} ->
 		   case  Key of
-		       vsn->
-			   Vsn;
-		       containers->
-			   Containers;
-		       wanted_hosts->
-			   WantedHosts;
-		       deployment->
-			   DeploymentList;
+		       pod_vsn->
+			   PodVsn;
+		       application_list->
+			   ApplicationList;
+		       replicas->
+			   Replicas;
+		       host_list->
+			   HostList;
 		       Err ->
 			   {error,['Key eexists',Err,?FUNCTION_NAME,?MODULE,?LINE]}
 		   end
 	   end,
     Return.
 
-add_deployment(Name,Pod,Dir,HostId,PodStatus,ContainerStatus)->
+
+
+delete(Object) ->
     F = fun() -> 
-		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
-					  X#?RECORD.name==Name])),
-		case RecordList of
-		    []->
-			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
-		    [S1]->
-			NewDeployment={Pod,Dir,HostId,PodStatus,ContainerStatus},
-			NewDeploymentList=[NewDeployment|lists:keydelete(Pod, 1, S1#?RECORD.deployment_list)],
-			NewRecord=S1#?RECORD{deployment_list=NewDeploymentList},
-			mnesia:delete_object(S1),
-			mnesia:write(NewRecord)
-		end
-      end,
+		mnesia:delete({?TABLE,Object})
+		    
+	end,
     mnesia:transaction(F).
 
-update_deployment(Name,Pod,Dir,HostId,PodStatus,ContainerStatus)->
-    F = fun() -> 
-		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
-					  X#?RECORD.name==Name])),
-		case RecordList of
-		    []->
-			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
-		    [S1]->
-			NewDeployment={Pod,Dir,HostId,PodStatus,ContainerStatus},
-			NewDeploymentList=lists:keyreplace(Pod, 1,S1#?RECORD.deployment_list,NewDeployment),
-			NewRecord=S1#?RECORD{deployment_list=NewDeploymentList},
-			mnesia:delete_object(S1),
-			mnesia:write(NewRecord)
-		end
-	end,
-    mnesia:transaction(F).
-delete_deployment(Name,Pod)->
-    F = fun() -> 
-		RecordList=do(qlc:q([X || X <- mnesia:table(?TABLE),
-					  X#?RECORD.name==Name])),
-		case RecordList of
-		    []->
-			mnesia:abort({error,[ticket,"eexist",[Name,RecordList]]});
-		    [S1]->
-			NewDeploymentList=lists:keydelete(Pod, 1,S1#?RECORD.deployment_list),
-			NewRecord=S1#?RECORD{deployment_list=NewDeploymentList},
-			mnesia:delete_object(S1),
-			mnesia:write(NewRecord)
-		end
-	end,
-    mnesia:transaction(F).
-    
-delete(Name) ->
-    F = fun() -> 
-		ToBeRemoved=[X||X<-mnesia:read({?TABLE,Name}),
-				X#?RECORD.name=:=Name],
-		case ToBeRemoved of
-		    []->
-			mnesia:abort(no_to_remove);
-		    ToBeRemoved ->
-			[mnesia:delete_object(PodSpec)||PodSpec<-ToBeRemoved]
-		end 
-	end,
-    mnesia:transaction(F).
- 
 
 do(Q) ->
   F = fun() -> qlc:e(Q) end,

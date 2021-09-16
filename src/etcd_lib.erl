@@ -30,7 +30,10 @@
 
 
 %% External exports
--export([init/0,
+-export([
+	 start_init_mnesia/0,
+	 start_mnesia/0,
+	 init/0,
 	 add_node/2,
 	 add_table/3
 	]).
@@ -40,17 +43,32 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+start_init_mnesia()->
+    ok=start_mnesia(),
+
+    ok=db_host_spec:create_table(),
+    ok=db_host_spec:git_init(),
+
+    ok=db_pod_spec:create_table(),
+    ok=db_pod_spec:git_init(),
+
+    ok=db_cluster_spec:create_table(),
+    ok=db_cluster_spec:git_init(),
+    
+    ok.
 
 %% --------------------------------------------------------------------
 %% Function:start
 %% Description: List of test cases 
 %% Returns: non
 %% --------------------------------------------------------------------
-
-init()->
+start_mnesia()->
     mnesia:stop(),
     mnesia:delete_schema([node()]),
     mnesia:start(),
+    ok.    
+init()->
+
     %Git info
     ok=init_cluster_info(),
     ok=init_cluster_specs(),
