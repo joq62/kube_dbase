@@ -8,7 +8,7 @@
 -define(RECORD,cluster_spec).
 -record(cluster_spec,{
 		      cluster_id,
-		      monitor_node,
+		      hosts,
 		      cookie
 		     }).
 % Git
@@ -49,10 +49,10 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(ClusterId,MonitorNode,Cookie)->
+create(ClusterId,Hosts,Cookie)->
     Record=#?RECORD{
 		    cluster_id=ClusterId,
-		    monitor_node=MonitorNode,
+		    hosts=Hosts,
 		    cookie=Cookie
 		   },
     F = fun() -> mnesia:write(Record) end,

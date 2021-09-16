@@ -106,14 +106,7 @@ host()->
 %% --------------------------------------------------------------------
 cluster()->
 
-    [{"lgh",
-      [{"c0_lgh","c0"},
-       {"c2_lgh","c2"},
-       {"asus_lgh","joq62-X550CA"}],
-      "lgh_cookie"},
-     {"varmdo",
-      [{"asus_varmdo","joq62-X550CA"}],
-      "varmdo_cookie"}]=db_cluster_spec:read_all(),
+    [{"lgh",["c0","c2","joq62-X550CA"],"lgh_cookie"}]=db_cluster_spec:read_all(),
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
