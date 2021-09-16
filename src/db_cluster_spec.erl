@@ -8,7 +8,7 @@
 -define(RECORD,cluster_spec).
 -record(cluster_spec,{
 		      cluster_id,
-		      hosts,
+		      monitor_node,
 		      cookie
 		     }).
 % Git
@@ -35,8 +35,8 @@ init_cluster_specs([],Result)->
 	    {error,[R]}
     end;
     
-init_cluster_specs([[{cluster_name,ClusterName},{hosts,Hosts},{cookie,Cookie}]|T],Acc)->
-    R=create(ClusterName,Hosts,Cookie),
+init_cluster_specs([[{cluster_name,ClusterName},{monitor_node,MonitorNodeHost},{cookie,Cookie}]|T],Acc)->
+    R=create(ClusterName,MonitorNodeHost,Cookie),
     init_cluster_specs(T,[R|Acc]).
 
 % End Special 
@@ -49,10 +49,10 @@ create_table(NodeList)->
 				 {disc_copies,NodeList}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create(ClusterId,Hosts,Cookie)->
+create(ClusterId,MonitorNodeHost,Cookie)->
     Record=#?RECORD{
 		    cluster_id=ClusterId,
-		    hosts=Hosts,
+		    monitor_node=MonitorNodeHost,
 		    cookie=Cookie
 		   },
     F = fun() -> mnesia:write(Record) end,
