@@ -3,7 +3,7 @@
 -compile(export_all).
 
 -include_lib("stdlib/include/qlc.hrl").
--define(LockTimeOut, 15). %% 30 sec 
+-define(LockTimeOut, 5). %% 30 sec 
 
 -define(TABLE,lock).
 -define(RECORD,lock).
@@ -13,18 +13,28 @@
 	 time,
 	 leader
 	}).
+
+check_init()->
+    Result = case do(qlc:q([X || X <- mnesia:table(?TABLE)])) of
+		 {aborted,{node_not_running,_}}->
+		     {error,[mnesia_not_started]};
+		 {aborted,{no_exists,{lock,disc_copies}}}->
+		     {error,[not_initiated,?MODULE]};
+		 _->
+		     ok
+	     end,
+    Result.
+
 create_table()->
     mnesia:create_table(?TABLE, [{attributes, record_info(fields, ?RECORD)}]),
     mnesia:wait_for_tables([?TABLE], 20000).
 
-create({?MODULE,LockId}) ->
-    create(LockId,0).
-create(LockId,Time) ->
+create(LockId,Time,Leader) ->
     F = fun() ->
 		Record=#?RECORD{
 				lock_id=LockId,
 				time=Time,
-				leader=node()
+				leader=Leader
 			       },		
 		mnesia:write(Record) end,
     mnesia:transaction(F).
@@ -74,9 +84,10 @@ is_leader(Object,Node)->
 	   end,
     Result.
     
-is_open(Object)->
-    is_open(Object,?LockTimeOut).
-is_open(Object,LockTimeOut)->
+is_open(Object,Node)->
+    is_open(Object,Node,?LockTimeOut).
+is_open(Object,Node,LockTimeOut)->
+  %  io:format("Object, LockTime ~p~n",[{Object,LockTimeOut}]),
     F=fun()->
 	      case mnesia:read({?TABLE,Object}) of
 		  []->
@@ -85,12 +96,13 @@ is_open(Object,LockTimeOut)->
 		      CurrentTime=erlang:system_time(seconds),
 		      LockTime=LockInfo#?RECORD.time,
 		      TimeDiff=CurrentTime-LockTime,
+		%      io:format("CurrentTime, LockTime ~p~n",[{CurrentTime,LockTime}]),
 		      if
 			  TimeDiff > LockTimeOut->
-			      LockInfo1=LockInfo#?RECORD{time=CurrentTime,leader=node()},
+			      LockInfo1=LockInfo#?RECORD{time=CurrentTime,leader=Node},
 			      mnesia:write(LockInfo1);
 			  TimeDiff == LockTimeOut->
-			      LockInfo1=LockInfo#?RECORD{time=CurrentTime,leader=node()},
+			      LockInfo1=LockInfo#?RECORD{time=CurrentTime,leader=Node},
 			      mnesia:write(LockInfo1);
 			  TimeDiff < LockTimeOut->
 			       mnesia:abort(Object)
@@ -122,8 +134,13 @@ delete(Object) ->
 
 
 do(Q) ->
-  F = fun() -> qlc:e(Q) end,
-  {atomic, Val} = mnesia:transaction(F),
-  Val.
+    F = fun() -> qlc:e(Q) end,
+    Result=case mnesia:transaction(F) of
+	       {atomic, Val}->
+		   Val;
+	       Error->
+		   Error
+	   end,
+    Result.
 
 %%-------------------------------------------------------------------------

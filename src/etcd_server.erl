@@ -182,7 +182,6 @@ check_started_extra_node()->
 %
 %% --------------------------------------------------------------------
 init([]) ->
-  %  etcd_lib:init(),
     {ok, #state{}}.
 
 %% --------------------------------------------------------------------
@@ -199,8 +198,6 @@ init([]) ->
 handle_call({ping}, _From, State) ->
     Reply={pong,node(),?MODULE},
     {reply, Reply, State};
-
-
 
 handle_call({start_init_mnesia}, _From, State) ->
     Reply=etcd_lib:start_init_mnesia(),
