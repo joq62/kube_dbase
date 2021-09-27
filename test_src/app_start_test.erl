@@ -50,7 +50,7 @@ start()->
 %% Returns: non
 %% --------------------------------------------------------------------
 setup()->
-    ok=application:start(dbase_dist),
+  %  ok=application:start(dbase_dist),
     ok.
 
 

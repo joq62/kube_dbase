@@ -31,9 +31,13 @@ start()->
     ok=setup(),
     io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start single()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=single(),
-    io:format("~p~n",[{"Stop single()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start pass1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=pass1(),
+    io:format("~p~n",[{"Stop pass1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+ %   io:format("~p~n",[{"Start single()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   ok=single(),
+ %   io:format("~p~n",[{"Stop single()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
    % io:format("~p~n",[{"Start cluster()",?MODULE,?FUNCTION_NAME,?LINE}]),
    % ok=cluster(),
@@ -86,6 +90,66 @@ start()->
     io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
 
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+pass1()->
+    Nodes=nodes(),
+    [N1,N2,N3]=Nodes,
+    io:format("Nodes ~p~n",[Nodes]),
+    [{'a@joq62-X550CA',{error,[mnesia_not_started]}},
+     {'b@joq62-X550CA',{error,[mnesia_not_started]}},
+     {'c@joq62-X550CA',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+
+    % Start first node
+    ok=rpc:call(N1,application,start,[dbase_dist],3000),
+    [{'a@joq62-X550CA',ok},
+     {'b@joq62-X550CA',{error,[mnesia_not_started]}},
+     {'c@joq62-X550CA',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+   
+    true=rpc:call('a@joq62-X550CA',db_lock,is_leader,[controller_lock,'a@joq62-X550CA'],2000),
+    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N1,db_lock,read_all_info,[],5000),
+ % Start second node
+    ok=rpc:call(N2,application,start,[dbase_dist],3000),
+    [{'a@joq62-X550CA',ok},
+     {'b@joq62-X550CA',ok},
+     {'c@joq62-X550CA',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+   
+    true=rpc:call(N2,db_lock,is_leader,[controller_lock,'a@joq62-X550CA'],2000),
+    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
+ % Start third node
+    ok=rpc:call(N3,application,start,[dbase_dist],3000),
+    [{'a@joq62-X550CA',ok},
+     {'b@joq62-X550CA',ok},
+     {'c@joq62-X550CA',ok}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+   
+    true=rpc:call(N3,db_lock,is_leader,[controller_lock,'a@joq62-X550CA'],2000),
+    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
+    % kill N1
+
+    slave:stop(N1),
+    [{'b@joq62-X550CA',ok},
+     {'c@joq62-X550CA',ok}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-nodes()],
+ %   timer:sleep(3000),
+    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
+    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
+    
+    %start N1 again
+    HostId=net_adm:localhost(),
+    Cookie=atom_to_list(erlang:get_cookie()),
+    Args="-pa ebin -setcookie "++Cookie,
+    {ok,N1}=slave:start(HostId,"a",Args),
+    ok=rpc:call(N1,application,start,[dbase_dist],5000),
+    
+%    timer:sleep(2000),
+    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N1,db_lock,read_all_info,[],5000),
+    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
+    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
+    
+    ok.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -342,8 +406,6 @@ setup()->
      {ok,NodeB},
      {ok,NodeC}]=[slave:start(HostId,NodeName,Args)||NodeName<-["a","b","c"]],
     
-    
-
    ok.
 
 
